@@ -28,6 +28,9 @@ var
 	RTCIceCandidate        = require('./RTCIceCandidate'),
 	MediaStream            = require('./MediaStream'),
 	MediaStreamTrack       = require('./MediaStreamTrack'),
+	RTCRtpSender           = require('./RTCRtpSender'),
+	RTCRtpTransceiver      = require('./RTCRtpTransceiver'),
+	RTCRtpReceiver         = require('./RTCRtpReceiver'),
 	videoElementsHandler   = require('./videoElementsHandler');
 
 
@@ -199,6 +202,9 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.MediaStream                      = MediaStream;
 	window.webkitMediaStream                = MediaStream;
 	window.MediaStreamTrack                 = MediaStreamTrack;
+	window.RTCRtpSender                     = RTCRtpSender;
+	window.RTCRtpTransceiver                = RTCRtpTransceiver;
+	window.RTCRtpReceiver                   = RTCRtpReceiver;
 }
 
 function dump() {

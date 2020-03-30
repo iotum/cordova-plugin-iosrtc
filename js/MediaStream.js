@@ -93,6 +93,10 @@ function MediaStream(arg, id) {
 		arg.forEach(function (track) {
 			stream.addTrack(track);
 		});
+		if (arg.length && arg.every((track) => track._connected)) {
+			// Iotun: restore the state
+			stream.connected = true;
+		}
 	} else if (typeof arg !== 'undefined') {
 		throw new TypeError("Failed to construct 'MediaStream': No matching constructor signature.");
 	}
@@ -332,6 +336,10 @@ MediaStream.prototype.emitConnected = function () {
 		return;
 	}
 	this.connected = true;
+	// Mark the track as connected, so moving between MediaStreams will maintain its state
+	this.getTracks().forEach(function (track) {
+		track._connected = true;
+	});
 
 	setTimeout(function (self) {
 		var event = new Event('connected');
