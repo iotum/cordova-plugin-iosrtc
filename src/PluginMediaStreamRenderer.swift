@@ -161,8 +161,8 @@ class PluginMediaStreamRenderer : NSObject, RTCEAGLVideoViewDelegate {
 
 	func refresh(_ data: NSDictionary) {
 		
-		let elementLeft = data.object(forKey: "elementLeft") as? Double ?? 0
-		let elementTop = data.object(forKey: "elementTop") as? Double ?? 0
+		var elementLeft = data.object(forKey: "elementLeft") as? Double ?? 0
+		var elementTop = data.object(forKey: "elementTop") as? Double ?? 0
 		let elementWidth = data.object(forKey: "elementWidth") as? Double ?? 0
 		let elementHeight = data.object(forKey: "elementHeight") as? Double ?? 0
 		var videoViewWidth = data.object(forKey: "videoViewWidth") as? Double ?? 0
@@ -173,6 +173,12 @@ class PluginMediaStreamRenderer : NSObject, RTCEAGLVideoViewDelegate {
 		let mirrored = data.object(forKey: "mirrored") as? Bool ?? false
 		let clip = data.object(forKey: "clip") as? Bool ?? true
 		let borderRadius = data.object(forKey: "borderRadius") as? Double ?? 0
+
+		if #available(iOS 11.0, *) {
+			// Position the video relative to safeAreaInsets
+			elementLeft += Double(self.webView.safeAreaInsets.left)
+			elementTop += Double(self.webView.safeAreaInsets.top)
+		}
 
 		NSLog("PluginMediaStreamRenderer#refresh() [elementLeft:%@, elementTop:%@, elementWidth:%@, elementHeight:%@, videoViewWidth:%@, videoViewHeight:%@, visible:%@, opacity:%@, zIndex:%@, mirrored:%@, clip:%@, borderRadius:%@]",
 			String(elementLeft), String(elementTop), String(elementWidth), String(elementHeight),
