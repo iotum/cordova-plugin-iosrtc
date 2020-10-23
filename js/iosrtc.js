@@ -26,6 +26,7 @@ var
 	RTCPeerConnection      = require('./RTCPeerConnection'),
 	RTCSessionDescription  = require('./RTCSessionDescription'),
 	RTCIceCandidate        = require('./RTCIceCandidate'),
+	MediaDevices           = require('./MediaDevices'),
 	MediaStream            = require('./MediaStream'),
 	MediaStreamTrack       = require('./MediaStreamTrack'),
 	RTCRtpSender           = require('./RTCRtpSender'),
@@ -45,6 +46,7 @@ module.exports = {
 	RTCPeerConnection:     RTCPeerConnection,
 	RTCSessionDescription: RTCSessionDescription,
 	RTCIceCandidate:       RTCIceCandidate,
+	MediaDevices:          MediaDevices,
 	MediaStream:           MediaStream,
 	MediaStreamTrack:      MediaStreamTrack,
 
@@ -62,6 +64,9 @@ module.exports = {
 
 	// Checking permision (audio and camera)
 	requestPermission: requestPermission,
+
+	// Expose a function to initAudioDevices if needed, sets the audio session active
+	initAudioDevices: initAudioDevices,
 
 	// Expose a function to pollute window and naigator namespaces.
 	registerGlobals:       registerGlobals,
@@ -124,8 +129,14 @@ function requestPermission(needMic, needCamera, callback) {
 	exec(ok, error, 'iosrtcPlugin', "RTCRequestPermission", [needMic, needCamera]);
 }
 
+function initAudioDevices() {
+	debug('initAudioDevices()');
+
+	exec(null, null, 'iosrtcPlugin', "initAudioDevices", []);
+}
+
 function callbackifyMethod(originalMethod) {
-	return function () {
+	return function (arg) { // jshint ignore:line
 		var success, failure,
 		  originalArgs = Array.prototype.slice.call(arguments);
 
@@ -172,6 +183,7 @@ function restoreCallbacksSupport() {
 	callbackifyPrototype(RTCPeerConnection.prototype, 'setRemoteDescription');
 	callbackifyPrototype(RTCPeerConnection.prototype, 'setLocalDescription');
 	callbackifyPrototype(RTCPeerConnection.prototype, 'addIceCandidate');
+	callbackifyPrototype(RTCPeerConnection.prototype, 'getStats');
 }
 
 function registerGlobals(doNotRestoreCallbacksSupport) {
@@ -182,7 +194,7 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	}
 
 	if (!navigator.mediaDevices) {
-		navigator.mediaDevices = {};
+		navigator.mediaDevices = new MediaDevices();
 	}
 
 	// Restore Callback support
@@ -205,6 +217,25 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.RTCRtpSender                     = RTCRtpSender;
 	window.RTCRtpTransceiver                = RTCRtpTransceiver;
 	window.RTCRtpReceiver                   = RTCRtpReceiver;
+
+	// Apply CanvasRenderingContext2D.drawImage monkey patch
+	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
+	CanvasRenderingContext2D.prototype.drawImage = function (arg) {
+		var args = Array.prototype.slice.call(arguments);
+		var context = this;
+		if (arg instanceof HTMLVideoElement && arg.render) {
+			arg.render.save(function (data) {
+			    var img = new window.Image();
+			    img.addEventListener("load", function () {
+			    	args.splice(0, 1, img.src);
+			        drawImage.apply(context, args);
+			    });
+			    img.setAttribute("src", "data:image/jpg;base64," + data);
+		  	});
+		} else {
+			return drawImage.apply(context, args);
+		}
+	};
 }
 
 function dump() {

@@ -16,12 +16,22 @@ var
 	debug = require('debug')('iosrtc:MediaStreamTrack'),
 	exec = require('cordova/exec'),
 	enumerateDevices = require('./enumerateDevices'),
+	MediaTrackCapabilities = require('./MediaTrackCapabilities'),
+	MediaTrackSettings = require('./MediaTrackSettings'),
 	EventTarget = require('./EventTarget');
 
 // Save original MediaStreamTrack
-var originalMediaStreamTrack = window.MediaStreamTrack;
+var originalMediaStreamTrack = window.MediaStreamTrack || function dummyMediaStreamTrack() {};
+
+function newMediaStreamTrackId() {
+   return window.crypto.getRandomValues(new Uint32Array(4)).join('-');
+}
 
 function MediaStreamTrack(dataFromEvent) {
+	if (!dataFromEvent) {
+		throw new Error('Illegal constructor');
+	}
+
 	debug('new() | [dataFromEvent:%o]', dataFromEvent);
 
 	var self = this;
@@ -66,6 +76,40 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 	}
 });
 
+MediaStreamTrack.prototype.getConstraints = function () {
+	throw new Error('Not implemented.');
+};
+
+MediaStreamTrack.prototype.applyConstraints = function () {
+	throw new Error('Not implemented.');
+};
+
+MediaStreamTrack.prototype.clone = function () {
+
+	var newTrackId = newMediaStreamTrackId();
+
+	exec(null, null, 'iosrtcPlugin', 'MediaStreamTrack_clone', [this.id, newTrackId]);
+
+	return new MediaStreamTrack({
+ 		id: newTrackId,
+ 		kind: this.kind,
+ 		label: this.label,
+ 		readyState: this.readyState,
+ 		enabled: this.enabled
+ 	});
+};
+
+MediaStreamTrack.prototype.getCapabilities = function () {
+	//throw new Error('Not implemented.');
+	// SHAM
+	return new MediaTrackCapabilities();
+};
+
+MediaStreamTrack.prototype.getSettings = function () {
+	//throw new Error('Not implemented.');
+	// SHAM
+	return new MediaTrackSettings();
+};
 
 MediaStreamTrack.prototype.stop = function () {
 	debug('stop()');

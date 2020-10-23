@@ -1,6 +1,62 @@
 #### Version 7.0.0
 * Update to WebRTC.framework M75
 
+#### Version 6.0.14
+* Move dist/cordova-plugin-iosrtc.js to www/cordova-plugin-iosrtc.js to match other cordova plugins practice.
+* fix: Use dispatchAsyncOnType:RTCDispatcherTypeMain instead of dispatchAsyncOnType:RTCDispatcherTypeCaptureSession to fix ios 14.0.1 crash
+* fix: eventListenerForAddStream causing black video on remote stream when using addtrack #576
+* fix: undefined references #563
+* fix: use video view for correct screencap framing #570
+* fix: cleanup old streams #570
+* implement basic MediaDevices.prototype.getSupportedConstraints SHIM #564
+* fix RTCPeerConnection.prototype.addTrack missing return RTCRtpSender #572
+
+#### Version 6.0.13
+* Bump lodash from 4.17.15 to 4.17.19 #543
+* Bump elliptic from 6.5.0 to 6.5.3 #553
+* Add build doc for CocoaPods and Capacitor users #538
+* Add SWIFT_VERSION and IPHONEOS_DEPLOYMENT_TARGET and DISABLE_IOSRTC_HOOK env options for extra/hooks/iosrtc-swift-support.js #512
+* Improve PluginEnumerateDevices.getAllVideoDevices with builtInTrueDepthCamera and better ios 10.0 support #548
+* Improve cleanup RTCPeerConnections, StreamRenderers, MediaStream, MediaStreamTracks when onReset and onAppTerminate is trigger
+* Implement MediaDevices SHAM
+* Fix crash in PluginEnumerateDevices when audioSession.availableInputs is empty
+* Fix MediaDevices.prototype Object.create(EventTarget.prototype)
+* Fix onaddtrack wihout stream crash during call initializing #532
+* Fix Video Element Redundancy on Refresh / Re-Navigation on same page #535
+* Fix Bridging header is getting added into the Widget/Extension as well causing build process to fail #504 via #513
+* Fix iceRestart constraint doesnt work #530 ([PR #531](https://github.com/cordova-rtc/cordova-plugin-iosrtc/pull/531) by @andrewvmail) 
+* Add Plugin option MANUAL_INIT_AUDIO_DEVICE default to false  ([PR #503](https://github.com/cordova-rtc/cordova-plugin-iosrtc/pull/503) by @andrewvmail) 
+* Fix getUserMedia compatiblity with Twilio Video #497
+* Fix attach stream to ontrack events only when available.
+* Fix issue with pluginMediaStream creation causing black screen due duplicate rtcMediaStream.streamId
+
+#### Version 6.0.12
+* Implement RTCPeerConnection track event on PluginRTCPeerConnection and RTCPeerConnection SHIM #508
+* Fix WebRTC-adapter <= 7.5.0 track SHIM failure
+* Fix WebRTC-adapter >= 7.6.0 track missing SHIM
+* Add SHAM for MediaStreamTrack.getSettings|getCapabilities
+* Add Throw Error Not implemented for MediaStreamTrack.getConstraints|applyConstraints
+* Fix RTCPeerConnection.prototype.getStats.length to match features detection #511
+* Fix Error: Callbacks are not supported by "RTCPeerConnection.prototype.getStats" anymore, use Promise instead. #510 
+* Fix Regex in iosrtc-swift-support.js returns wrong value #502
+* Fix Backgroundcolor is now "clear" instead of "black" #514
+* Fix gulp-util is deprecated - replace it #428
+* Add support for MediaStreamTrack.clone() method #474
+* Add basic RTCRtpTransceiver|RTCRtpSender|RTCRtpReceiver shim #423
+* Fix getReceivers method doesn't return RTCRtpReceiver array #442
+* Fix Blob only support for iOS 10.x that does not know MediaStream #495
+* Incompatibility with Janus WebRTC gateway when using WebRTC-adapter >= 7.6.0 #505
+* Improve getUserMedia compatiblity with Twilio Video #497
+
+#### Version 6.0.11
+* Fix possible duplicate remote streamId/trackId with janus/kurento/freeswitch or short duplicate name #493
+* Fix Calling removeTrack/addTrack does not update renderer #492
+
+#### Version 6.0.10
+* Fix ios 10.2+ issue with loading cordova when iosrtc plugin present. #488
+* Fix TypeError: undefined is not an object(evaluating 'originaMediaStream.prototype') #485
+* Handle ios 10.x.x that does not have MediaStream Native Prototype and fallback on Blob with EventTarget shim #489
+
 #### Version 6.0.9
 * fix possible TypeError: null is not an object (evaluating 'iceCandidateFields.foundation') due fail match candidateToJson #473
 * fix getStats typo report.timestamp #472
@@ -8,7 +64,7 @@
 
 #### Version 6.0.8
 * Add Known Issues > iOS >= 13.3.1 Device support to README.md
-* implement candidateToJson SDP candidate parser into RTCIceCandidate to populate foundation, component, priority, type, address, ip, protocol, port, relatedAddress and relatedPort RTCIceCandidate values #468
+* Implement candidateToJson SDP candidate parser into RTCIceCandidate to populate foundation, component, priority, type, address, ip, protocol, port, relatedAddress and relatedPort RTCIceCandidate values #468
 * Fix PeerConnection.addStream|addTrack by using UUID().uuidString preffix for PluginMediaStream and PluginMediaStreamTrack only for Janus #467
 
 #### Version 6.0.7
