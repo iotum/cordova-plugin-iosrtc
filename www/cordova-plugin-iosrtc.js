@@ -3460,6 +3460,9 @@ var // Dictionary of MediaStreamRenderers.
 	MediaDevices = _dereq_('./MediaDevices'),
 	MediaStream = _dereq_('./MediaStream'),
 	MediaStreamTrack = _dereq_('./MediaStreamTrack'),
+	RTCRtpSender = _dereq_('./RTCRtpSender'),
+	RTCRtpTransceiver = _dereq_('./RTCRtpTransceiver'),
+	RTCRtpReceiver = _dereq_('./RTCRtpReceiver'),
 	videoElementsHandler = _dereq_('./videoElementsHandler');
 
 /**
@@ -3641,6 +3644,9 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.MediaStream = MediaStream;
 	window.webkitMediaStream = MediaStream;
 	window.MediaStreamTrack = MediaStreamTrack;
+	window.RTCRtpSender = RTCRtpSender;
+	window.RTCRtpTransceiver = RTCRtpTransceiver;
+	window.RTCRtpReceiver = RTCRtpReceiver;
 
 	// Apply CanvasRenderingContext2D.drawImage monkey patch
 	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
