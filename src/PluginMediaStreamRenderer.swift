@@ -161,8 +161,8 @@ class PluginMediaStreamRenderer : NSObject, RTCEAGLVideoViewDelegate {
 
 	func refresh(_ data: NSDictionary) {
 
-		let elementLeft = data.object(forKey: "elementLeft") as? Double ?? 0
-		let elementTop = data.object(forKey: "elementTop") as? Double ?? 0
+		var elementLeft = data.object(forKey: "elementLeft") as? Double ?? 0
+		var elementTop = data.object(forKey: "elementTop") as? Double ?? 0
 		let elementWidth = data.object(forKey: "elementWidth") as? Double ?? 0
 		let elementHeight = data.object(forKey: "elementHeight") as? Double ?? 0
 		var videoViewWidth = data.object(forKey: "videoViewWidth") as? Double ?? 0
