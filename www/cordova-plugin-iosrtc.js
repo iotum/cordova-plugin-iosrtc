@@ -314,6 +314,10 @@ function MediaStream(arg, id) {
 		arg.forEach(function (track) {
 			stream.addTrack(track);
 		});
+		if (arg.length && arg.every((track) => track._connected)) {
+			// Iotun: restore the state
+			stream.connected = true;
+		}
 	} else if (typeof arg !== 'undefined') {
 		throw new TypeError(
 			"Failed to construct 'MediaStream': No matching constructor signature."
@@ -568,6 +572,10 @@ MediaStream.prototype.emitConnected = function () {
 		return;
 	}
 	this.connected = true;
+	// Mark the track as connected, so moving between MediaStreams will maintain its state
+	this.getTracks().forEach(function (track) {
+		track._connected = true;
+	});
 
 	setTimeout(
 		function (self) {
@@ -1031,6 +1039,12 @@ MediaStreamRenderer.prototype.refresh = function () {
 
 	nativeRefresh.call(this);
 
+	if (this.element.readyState === this.element.HAVE_ENOUGH_DATA) {
+		// Iotum: emit the canplay events again
+		this.element.dispatchEvent(new Event('canplay'));
+		this.element.dispatchEvent(new Event('canplaythrough'));
+	}
+
 	function hash(str) {
 		var hash = 5381,
 			i = str.length;
@@ -1202,11 +1216,11 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 });
 
 MediaStreamTrack.prototype.getConstraints = function () {
-	throw new Error('Not implemented.');
+	return {};
 };
 
 MediaStreamTrack.prototype.applyConstraints = function () {
-	throw new Error('Not implemented.');
+	return Promise.reject('Not implemented.');
 };
 
 MediaStreamTrack.prototype.clone = function () {
@@ -1939,7 +1953,7 @@ function RTCPeerConnection(pcConfig, pcConstraints) {
 
 	// Restore corrupted RTCPeerConnection.prototype
 	// TODO find why webrtc-adapter prevent events onnegotiationneeded to be trigger.
-	// Object.defineProperties(this, RTCPeerConnection.prototype_descriptor);
+	Object.defineProperties(this, RTCPeerConnection.prototype_descriptor);
 
 	// Fix webrtc-adapter bad SHIM on addTrack causing error when original does support multiple streams.
 	// NotSupportedError: The adapter.js addTrack, addStream polyfill only supports a single stream which is associated with the specified track.
@@ -3446,6 +3460,9 @@ var // Dictionary of MediaStreamRenderers.
 	MediaDevices = _dereq_('./MediaDevices'),
 	MediaStream = _dereq_('./MediaStream'),
 	MediaStreamTrack = _dereq_('./MediaStreamTrack'),
+	RTCRtpSender = _dereq_('./RTCRtpSender'),
+	RTCRtpTransceiver = _dereq_('./RTCRtpTransceiver'),
+	RTCRtpReceiver = _dereq_('./RTCRtpReceiver'),
 	videoElementsHandler = _dereq_('./videoElementsHandler');
 
 /**
@@ -3627,6 +3644,9 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.MediaStream = MediaStream;
 	window.webkitMediaStream = MediaStream;
 	window.MediaStreamTrack = MediaStreamTrack;
+	window.RTCRtpSender = RTCRtpSender;
+	window.RTCRtpTransceiver = RTCRtpTransceiver;
+	window.RTCRtpReceiver = RTCRtpReceiver;
 
 	// Apply CanvasRenderingContext2D.drawImage monkey patch
 	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
@@ -3654,7 +3674,7 @@ function dump() {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./MediaDevices":4,"./MediaStream":5,"./MediaStreamTrack":7,"./RTCIceCandidate":12,"./RTCPeerConnection":13,"./RTCSessionDescription":17,"./enumerateDevices":20,"./getUserMedia":21,"./videoElementsHandler":23,"cordova/exec":undefined,"debug":24,"domready":26}],23:[function(_dereq_,module,exports){
+},{"./MediaDevices":4,"./MediaStream":5,"./MediaStreamTrack":7,"./RTCIceCandidate":12,"./RTCPeerConnection":13,"./RTCRtpReceiver":14,"./RTCRtpSender":15,"./RTCRtpTransceiver":16,"./RTCSessionDescription":17,"./enumerateDevices":20,"./getUserMedia":21,"./videoElementsHandler":23,"cordova/exec":undefined,"debug":24,"domready":26}],23:[function(_dereq_,module,exports){
 /**
  * Expose a function that must be called when the library is loaded.
  * And also a helper function.
