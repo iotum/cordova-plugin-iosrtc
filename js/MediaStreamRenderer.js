@@ -314,6 +314,12 @@ MediaStreamRenderer.prototype.refresh = function () {
 
 	nativeRefresh.call(this);
 
+	if (this.element.readyState === this.element.HAVE_ENOUGH_DATA) {
+		// Iotum: emit the canplay events again
+		this.element.dispatchEvent(new Event('canplay'));
+		this.element.dispatchEvent(new Event('canplaythrough'));
+	}
+
 	function hash(str) {
 		var hash = 5381,
 			i = str.length;
