@@ -1216,11 +1216,11 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 });
 
 MediaStreamTrack.prototype.getConstraints = function () {
-	throw new Error('Not implemented.');
+	return {};
 };
 
 MediaStreamTrack.prototype.applyConstraints = function () {
-	throw new Error('Not implemented.');
+	return Promise.resolve('Not Implemented');
 };
 
 MediaStreamTrack.prototype.clone = function () {
