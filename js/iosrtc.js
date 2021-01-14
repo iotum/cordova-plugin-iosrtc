@@ -201,9 +201,6 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	navigator.mediaDevices.getUserMedia = getUserMedia;
 	navigator.mediaDevices.enumerateDevices = enumerateDevices;
 
-	// Prevent WebRTC-adapter to overide navigator.mediaDevices after shim is applied since ios 14.3
-	Object.freeze(navigator.mediaDevices);
-
 	window.RTCPeerConnection = RTCPeerConnection;
 	window.webkitRTCPeerConnection = RTCPeerConnection;
 	window.RTCSessionDescription = RTCSessionDescription;
