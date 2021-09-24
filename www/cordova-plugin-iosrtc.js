@@ -3623,10 +3623,6 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 		global.navigator = {};
 	}
 
-	if (!navigator.mediaDevices) {
-		navigator.mediaDevices = new MediaDevices();
-	}
-
 	// Restore Callback support
 	if (!doNotRestoreCallbacksSupport) {
 		restoreCallbacksSupport();
@@ -3634,8 +3630,24 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 
 	navigator.getUserMedia = getUserMedia;
 	navigator.webkitGetUserMedia = getUserMedia;
-	navigator.mediaDevices.getUserMedia = getUserMedia;
-	navigator.mediaDevices.enumerateDevices = enumerateDevices;
+
+	// Prevent WebRTC-adapter to overide navigator.mediaDevices after shim is applied since ios 14.3
+	if (!(navigator.mediaDevices instanceof MediaDevices)) {
+		Object.defineProperty(
+			navigator,
+			'mediaDevices',
+			{
+				value: new MediaDevices(),
+				writable: false
+			},
+			{
+				enumerable: false,
+				configurable: false,
+				writable: false,
+				value: 'static'
+			}
+		);
+	}
 
 	window.RTCPeerConnection = RTCPeerConnection;
 	window.webkitRTCPeerConnection = RTCPeerConnection;
@@ -3650,23 +3662,65 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 
 	// Apply CanvasRenderingContext2D.drawImage monkey patch
 	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
-	CanvasRenderingContext2D.prototype.drawImage = function (arg) {
-		var args = Array.prototype.slice.call(arguments);
-		var context = this;
-		if (arg instanceof HTMLVideoElement && arg.render) {
-			arg.render.save(function (data) {
-				var img = new window.Image();
-				img.addEventListener('load', function () {
-					args.splice(0, 1, img);
-					drawImage.apply(context, args);
-					img.src = null;
-				});
-				img.setAttribute('src', 'data:image/jpg;base64,' + data);
-			});
-		} else {
-			return drawImage.apply(context, args);
+	CanvasRenderingContext2D.prototype.drawImage = (function () {
+		// Methods to address the memory leaks problems in Safari
+		let temporaryImage, imageElement;
+		const BASE64_MARKER = ';base64,';
+		const objectURL = window.URL || window.webkitURL;
+
+		function convertDataURIToBlob(dataURI) {
+			// Validate input data
+			if (!dataURI) {
+				return;
+			}
+
+			// Convert image (in base64) to binary data
+			const base64Index = dataURI.indexOf(BASE64_MARKER) + BASE64_MARKER.length;
+			const base64 = dataURI.substring(base64Index);
+			const raw = window.atob(base64);
+			const rawLength = raw.length;
+			let array = new Uint8Array(new ArrayBuffer(rawLength));
+
+			for (let i = 0; i < rawLength; i++) {
+				array[i] = raw.charCodeAt(i);
+			}
+
+			// Create and return a new blob object using binary data
+			return new Blob([array], { type: 'image/jpeg' });
 		}
-	};
+
+		return function (arg) {
+			const context = this;
+			let args = Array.prototype.slice.call(arguments);
+			if (arg instanceof HTMLVideoElement && arg.render) {
+				arg.render.save(function (base64Image) {
+					// Destroy old image
+					if (temporaryImage) {
+						objectURL.revokeObjectURL(temporaryImage);
+					}
+
+					// Create a new image from binary data
+					const imageDataBlob = convertDataURIToBlob(
+						'data:image/jpg;base64,' + base64Image
+					);
+
+					// Create a new object URL object
+					imageElement = imageElement || new Image();
+					temporaryImage = objectURL.createObjectURL(imageDataBlob);
+
+					imageElement.addEventListener('load', function () {
+						args.splice(0, 1, imageElement);
+						drawImage.apply(context, args);
+					});
+
+					// Set the new image
+					imageElement.src = temporaryImage;
+				});
+			} else {
+				return drawImage.apply(context, args);
+			}
+		};
+	})();
 }
 
 function dump() {
