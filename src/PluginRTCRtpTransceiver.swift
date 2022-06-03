@@ -6,7 +6,8 @@ class PluginRTCRtpTransceiver : NSObject {
     var rtcRtpTransceiver: RTCRtpTransceiver?
 	var pluginRTCRtpReceiver: PluginRTCRtpReceiver?
 	var pluginRTCRtpSender: PluginRTCRtpSender?
-    
+    private var direction: RTCRtpTransceiverDirection = .inactive
+
     init(_ rtcRtpTransceiver: RTCRtpTransceiver) {
         NSLog("PluginRTCRtpTransceiver#init(rtcRtpTransceiver)")
         
@@ -17,6 +18,10 @@ class PluginRTCRtpTransceiver : NSObject {
 		self.pluginRTCRtpReceiver = PluginRTCRtpReceiver(rtcRtpTransceiver.receiver, 0)
         
         super.init()
+
+        if let transceiver = self.rtcRtpTransceiver {
+            updateSendersCount(for: transceiver.mediaType, with: transceiver.direction)
+        }
     }
 
     init(
@@ -46,6 +51,10 @@ class PluginRTCRtpTransceiver : NSObject {
 		}
         
         super.init()
+
+        if let transceiver = self.rtcRtpTransceiver {
+            updateSendersCount(for: transceiver.mediaType, with: transceiver.direction)
+        }
     }
 
     init(
@@ -75,10 +84,38 @@ class PluginRTCRtpTransceiver : NSObject {
 		}
 
         super.init()
+
+        if let transceiver = self.rtcRtpTransceiver {
+            updateSendersCount(for: transceiver.mediaType, with: transceiver.direction)
+        }
     }
 
     deinit {
 		NSLog("PluginRTCRtpTransceiver#deinit()")
+
+        if let transceiver = self.rtcRtpTransceiver {
+            updateSendersCount(for: transceiver.mediaType, with: transceiver.direction)
+        }
+    }
+
+    private func updateSendersCount(for mediaType: RTCRtpMediaType, with newDirection: RTCRtpTransceiverDirection) {
+        guard mediaType == .audio else { return }
+        guard self.direction != newDirection else { return }
+
+        let sendDirections = [RTCRtpTransceiverDirection.sendOnly, RTCRtpTransceiverDirection.sendRecv]
+        let wasSending = sendDirections.contains(self.direction)
+        let willSend = sendDirections.contains(newDirection)
+
+        self.direction = newDirection
+
+        if(wasSending != willSend) {
+            let audioController = PluginRTCAudioController.instance
+            if(willSend) {
+                audioController.audioSenderCreated()
+            } else {
+                audioController.audioSenderDestroyed()
+            }
+        }
 	}
 
     func stop() {
@@ -86,7 +123,12 @@ class PluginRTCRtpTransceiver : NSObject {
     }
     
     func setDirection(direction: String) {
-        self.rtcRtpTransceiver?.setDirection(PluginRTCRtpTransceiver.stringToDirection(direction), error: nil)
+        guard let rtcRtpTransceiver = self.rtcRtpTransceiver else { return }
+
+        let direction = PluginRTCRtpTransceiver.stringToDirection(direction)
+
+        rtcRtpTransceiver.setDirection(direction, error: nil)
+        self.direction = direction
     }
     
     static func stringToDirection(_ direction: String) -> RTCRtpTransceiverDirection {

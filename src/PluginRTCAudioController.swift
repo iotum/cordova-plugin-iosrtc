@@ -11,6 +11,10 @@ import WebRTC
 import AVFoundation
 
 class PluginRTCAudioController {
+	static let instance = PluginRTCAudioController()
+
+	static private let inactiveAudioCategory: AVAudioSession.Category = .playback
+	static private let inactiveCategoryOptions: AVAudioSession.CategoryOptions = []
 
 	static private var audioCategory : AVAudioSession.Category = AVAudioSession.Category.playAndRecord
 
@@ -175,6 +179,8 @@ class PluginRTCAudioController {
 
 	static private var speakerEnabled: Bool = false
 
+	private var audioSendersCount = 0
+
 	init() {
 		let shouldManualInit = Bundle.main.object(forInfoDictionaryKey: "ManualInitAudioDevice") as? String
 
@@ -201,5 +207,74 @@ class PluginRTCAudioController {
 		default:
 			break
 		}
+	}
+
+	private func firstAudioSenderCreated() {
+		let rtcAudioSession = RTCAudioSession.sharedInstance()
+
+		rtcAudioSession.lockForConfiguration()
+		defer {
+			rtcAudioSession.unlockForConfiguration()
+		}
+
+		let defaultWebRTCConfiguration = RTCAudioSessionConfiguration()
+
+		let category = defaultWebRTCConfiguration.category
+		let mode = defaultWebRTCConfiguration.mode
+		let categoryOptions = defaultWebRTCConfiguration.categoryOptions
+
+		let webRTCConfiguration = RTCAudioSessionConfiguration.webRTC()
+		webRTCConfiguration.category = category
+		webRTCConfiguration.mode = mode
+		webRTCConfiguration.categoryOptions = categoryOptions
+
+		try? rtcAudioSession.setCategory(category, with: categoryOptions)
+		try? rtcAudioSession.setMode(mode)
+	}
+
+	private func lastAudioSenderDestroyed() {
+		let rtcAudioSession = RTCAudioSession.sharedInstance()
+
+		rtcAudioSession.lockForConfiguration()
+		defer {
+			rtcAudioSession.unlockForConfiguration()
+		}
+
+		let category = Self.inactiveAudioCategory.rawValue
+		let mode = Self.audioModeDefault.rawValue
+		let categoryOptions = Self.inactiveCategoryOptions
+
+		let webRTCConfiguration = RTCAudioSessionConfiguration.webRTC()
+		webRTCConfiguration.category = category
+		webRTCConfiguration.mode = mode
+		webRTCConfiguration.categoryOptions = categoryOptions
+
+		try? rtcAudioSession.setMode(mode)
+		try? rtcAudioSession.setCategory(category, with: categoryOptions)
+		try? AVAudioSession.sharedInstance().setActive(true)
+	}
+
+	func audioSenderCreated() {
+		self.audioSendersCount += 1
+
+		if(self.audioSendersCount == 1) {
+			firstAudioSenderCreated()
+		}
+	}
+
+	func audioSenderDestroyed() {
+		guard self.audioSendersCount > 0 else { return }
+
+		self.audioSendersCount -= 1
+
+		if(self.audioSendersCount == 0) {
+			lastAudioSenderDestroyed()
+		}
+	}
+
+	func firstPeerConnectionCreated() {
+	}
+
+	func lastPeerConnectionDestroyed() {
 	}
 }

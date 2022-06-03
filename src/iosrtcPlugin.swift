@@ -49,7 +49,7 @@ class iosrtcPlugin : CDVPlugin {
 		)
 
 		// Create a PluginRTCAudioController instance.
-		self.audioOutputController = PluginRTCAudioController()
+		self.audioOutputController = PluginRTCAudioController.instance
 	}
 
 	private func initPeerConnectionFactory() {
@@ -119,6 +119,10 @@ class iosrtcPlugin : CDVPlugin {
 			eventListenerForAddTrack: self.saveMediaStreamTrack,
 			eventListenerForRemoveTrack: self.deleteMediaStreamTrack
 		)
+
+		if self.pluginRTCPeerConnections.isEmpty {
+			self.audioOutputController.firstPeerConnectionCreated()
+		}
 
 		// Store the pluginRTCPeerConnection into the dictionary.
 		self.pluginRTCPeerConnections[pcId] = pluginRTCPeerConnection
@@ -664,6 +668,9 @@ class iosrtcPlugin : CDVPlugin {
 
 			// Remove the pluginRTCPeerConnection from the dictionary.
 			self.pluginRTCPeerConnections[pcId] = nil
+			if self.pluginRTCPeerConnections.isEmpty {
+				self.audioOutputController.lastPeerConnectionDestroyed()
+			}
 		}
 	}
 
