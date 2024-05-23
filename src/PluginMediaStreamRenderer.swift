@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 
-class PluginMediaStreamRenderer : NSObject, RTCEAGLVideoViewDelegate {
+class PluginMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 
 	var id: String
 	var eventListener: (_ data: NSDictionary) -> Void
@@ -11,7 +11,7 @@ class PluginMediaStreamRenderer : NSObject, RTCEAGLVideoViewDelegate {
 	var elementView: UIView
 	var pluginMediaStream: PluginMediaStream?
 
-	var videoView: RTCEAGLVideoView
+	var videoView: RTCMTLVideoView
 	var rtcAudioTrack: RTCAudioTrack?
 	var rtcVideoTrack: RTCVideoTrack?
     var pluginVideoTrack: PluginMediaStreamTrack?
@@ -40,7 +40,7 @@ class PluginMediaStreamRenderer : NSObject, RTCEAGLVideoViewDelegate {
 
 		// The effective video view in which the the video stream is shown.
 		// It's placed over the elementView.
-		self.videoView = RTCEAGLVideoView()
+		self.videoView = RTCMTLVideoView()
 		self.videoView.isUserInteractionEnabled = false
 
 		self.elementView.isUserInteractionEnabled = false

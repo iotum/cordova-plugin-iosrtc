@@ -228,8 +228,8 @@ class PluginRTCAudioController {
 		webRTCConfiguration.mode = mode
 		webRTCConfiguration.categoryOptions = categoryOptions
 
-		try? rtcAudioSession.setCategory(category, with: categoryOptions)
-		try? rtcAudioSession.setMode(mode)
+		try? rtcAudioSession.setCategory(AVAudioSession.Category(rawValue: category), with: categoryOptions)
+		try? rtcAudioSession.setMode(AVAudioSession.Mode(rawValue: mode))
 	}
 
 	private func lastAudioSenderDestroyed() {
@@ -249,8 +249,8 @@ class PluginRTCAudioController {
 		webRTCConfiguration.mode = mode
 		webRTCConfiguration.categoryOptions = categoryOptions
 
-		try? rtcAudioSession.setMode(mode)
-		try? rtcAudioSession.setCategory(category, with: categoryOptions)
+		try? rtcAudioSession.setMode(AVAudioSession.Mode(rawValue: mode))
+		try? rtcAudioSession.setCategory(AVAudioSession.Category(rawValue: category), with: categoryOptions)
 		try? AVAudioSession.sharedInstance().setActive(true)
 	}
 
