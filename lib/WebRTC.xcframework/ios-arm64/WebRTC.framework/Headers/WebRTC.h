@@ -77,6 +77,7 @@
 #import <WebRTC/RTCRtpHeaderExtensionCapability.h>
 #import <WebRTC/RTCRtpParameters.h>
 #import <WebRTC/RTCRtpReceiver.h>
+#import <WebRTC/RTCRtpSource.h>
 #import <WebRTC/RTCRtpSender.h>
 #import <WebRTC/RTCRtpTransceiver.h>
 #import <WebRTC/RTCDtmfSender.h>
