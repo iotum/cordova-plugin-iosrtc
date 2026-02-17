@@ -43,7 +43,7 @@ class PluginEnumerateDevices {
 			])
 		}
 
-		print("DEVICES => ", json)
+		// print("DEVICES => ", json)
 		callback(json as NSDictionary)
 	}
 }
