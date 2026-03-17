@@ -1,5 +1,5 @@
 /*
- * cordova-plugin-iosrtc v11.1.0
+ * cordova-plugin-iosrtc v11.2.0
  * Cordova iOS plugin exposing the full WebRTC W3C JavaScript APIs
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -1209,8 +1209,8 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 			if (CordovaCall) {
 				if (this._enabled === !value) {
 					!value
-						? CordovaCall.mute(() => (this._enabled = false))
-						: CordovaCall.unmute(() => (this._enabled = true));
+						? CordovaCall.mute(this._sessionId, () => (this._enabled = false))
+						: CordovaCall.unmute(this._sessionId, () => (this._enabled = true));
 					this._enabled = !!value;
 				}
 				return;

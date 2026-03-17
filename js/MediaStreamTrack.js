@@ -82,8 +82,8 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 			if (CordovaCall) {
 				if (this._enabled === !value) {
 					!value
-						? CordovaCall.mute(() => (this._enabled = false))
-						: CordovaCall.unmute(() => (this._enabled = true));
+						? CordovaCall.mute(this._sessionId, () => (this._enabled = false))
+						: CordovaCall.unmute(this._sessionId, () => (this._enabled = true));
 					this._enabled = !!value;
 				}
 				return;
