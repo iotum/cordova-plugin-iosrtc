@@ -137,6 +137,22 @@ RTCRtpTransceiver.prototype.stop = function () {
 	}
 };
 
+RTCRtpTransceiver.prototype.setCodecPreferences = function (codecs) {
+	var self = this;
+
+	exec(
+		onResultOK,
+		null,
+		'iosrtcPlugin',
+		'RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences',
+		[this.peerConnection.pcId, this._id, codecs]
+	);
+
+	function onResultOK(data) {
+		self.peerConnection.updateTransceiversState(data.transceivers);
+	}
+};
+
 RTCRtpTransceiver.prototype.update = function (data) {
 	if (data.direction) {
 		this._direction = data.direction;

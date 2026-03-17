@@ -100,3 +100,17 @@ RTCRtpSender.prototype.update = function ({ track, params }) {
 
 	this.params = params;
 };
+
+RTCRtpSender.getCapabilities = function (kind) {
+	return new Promise(function (resolve, reject) {
+		exec(
+			function (data) {
+				resolve(data);
+			},
+			reject,
+			'iosrtcPlugin',
+			'RTCRtpSender_getCapabilities',
+			[kind]
+		);
+	});
+};
