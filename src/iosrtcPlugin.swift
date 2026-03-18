@@ -561,6 +561,76 @@ class iosrtcPlugin : CDVPlugin {
 		}
 	}
 
+	@objc(RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences:) func RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences(_ command: CDVInvokedUrlCommand) {
+		NSLog("iosrtcPlugin#RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences()")
+
+		let pcId = command.argument(at: 0) as! Int
+		let tcId = command.argument(at: 1) as! Int
+		let codecs = command.argument(at: 2) as! [NSDictionary]
+
+		let pluginRTCPeerConnection = pluginRTCPeerConnections[pcId]
+
+		if pluginRTCPeerConnection == nil {
+			NSLog("iosrtcPlugin#RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences() | ERROR: pluginRTCPeerConnection with pcId=%@ does not exist", String(pcId))
+			return
+		}
+
+		let pluginRTCRtpTransceiver = pluginRTCPeerConnection!.pluginRTCRtpTransceivers[tcId]
+
+		if pluginRTCRtpTransceiver == nil {
+			NSLog("iosrtcPlugin#RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences() | ERROR: pluginRTCRtpTransceiver with id=\(tcId) does not exist")
+			return
+		}
+
+		self.queue.async { [weak pluginRTCPeerConnection, weak pluginRTCRtpTransceiver] in
+			let callback = { (data: NSDictionary) -> Void in
+				let result = CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: data as? [AnyHashable: Any]
+				)
+
+				result!.setKeepCallbackAs(true)
+				self.emit(command.callbackId, result: result!)
+			}
+
+			pluginRTCRtpTransceiver!.setCodecPreferences(codecs, factory: pluginRTCPeerConnection!.rtcPeerConnectionFactory)
+
+			let response: NSDictionary = [
+				"transceivers": pluginRTCPeerConnection!.getTransceiversJSON()
+			]
+
+			callback(response)
+		}
+	}
+
+	@objc(RTCRtpSender_getCapabilities:) func RTCRtpSender_getCapabilities(_ command: CDVInvokedUrlCommand) {
+		NSLog("iosrtcPlugin#RTCRtpSender_getCapabilities()")
+
+		let kind = command.argument(at: 0) as! String
+
+		self.queue.async {
+			let capabilities = self.rtcPeerConnectionFactory.rtpSenderCapabilities(forKind: kind)
+			let codecsJSON = capabilities.codecs.map { PluginRTCRtpTransceiver.codecCapabilityToJSON($0) }
+			let response: NSDictionary = ["codecs": codecsJSON]
+			let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: response as? [AnyHashable: Any])
+			self.emit(command.callbackId, result: result!)
+		}
+	}
+
+	@objc(RTCRtpReceiver_getCapabilities:) func RTCRtpReceiver_getCapabilities(_ command: CDVInvokedUrlCommand) {
+		NSLog("iosrtcPlugin#RTCRtpReceiver_getCapabilities()")
+
+		let kind = command.argument(at: 0) as! String
+
+		self.queue.async {
+			let capabilities = self.rtcPeerConnectionFactory.rtpReceiverCapabilities(forKind: kind)
+			let codecsJSON = capabilities.codecs.map { PluginRTCRtpTransceiver.codecCapabilityToJSON($0) }
+			let response: NSDictionary = ["codecs": codecsJSON]
+			let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: response as? [AnyHashable: Any])
+			self.emit(command.callbackId, result: result!)
+		}
+	}
+
 	@objc(RTCPeerConnection_createDataChannel:) func RTCPeerConnection_createDataChannel(_ command: CDVInvokedUrlCommand) {
 		NSLog("iosrtcPlugin#RTCPeerConnection_createDataChannel()")
 

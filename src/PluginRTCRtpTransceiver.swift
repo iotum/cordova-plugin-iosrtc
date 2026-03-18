@@ -121,7 +121,65 @@ class PluginRTCRtpTransceiver : NSObject {
     func stop() {
         self.rtcRtpTransceiver!.stopInternal()
     }
-    
+
+    func setCodecPreferences(_ codecs: [NSDictionary], factory: RTCPeerConnectionFactory) {
+        guard let rtcRtpTransceiver = self.rtcRtpTransceiver else { return }
+
+        let mediaType = rtcRtpTransceiver.mediaType
+        let kind = mediaType == .audio ? kRTCMediaStreamTrackKindAudio : kRTCMediaStreamTrackKindVideo
+
+        let senderCapabilities = factory.rtpSenderCapabilities(forKind: kind)
+        let receiverCapabilities = factory.rtpReceiverCapabilities(forKind: kind)
+
+        var allCapabilities: [RTCRtpCodecCapability] = []
+        allCapabilities.append(contentsOf: senderCapabilities.codecs)
+        for cap in receiverCapabilities.codecs {
+            if !allCapabilities.contains(where: { PluginRTCRtpTransceiver.codecCapabilityMatches($0, cap) }) {
+                allCapabilities.append(cap)
+            }
+        }
+
+        var matchedCodecs: [RTCRtpCodecCapability] = []
+        for codecDict in codecs {
+            if let matched = PluginRTCRtpTransceiver.findMatchingCapability(codecDict, in: allCapabilities) {
+                matchedCodecs.append(matched)
+            }
+        }
+
+        rtcRtpTransceiver.setCodecPreferences(matchedCodecs)
+    }
+
+    private static func codecCapabilityMatches(_ a: RTCRtpCodecCapability, _ b: RTCRtpCodecCapability) -> Bool {
+        return a.mimeType.lowercased() == b.mimeType.lowercased() &&
+               a.clockRate == b.clockRate &&
+               a.numChannels == b.numChannels &&
+               a.parameters == b.parameters
+    }
+
+    private static func findMatchingCapability(_ codecDict: NSDictionary, in capabilities: [RTCRtpCodecCapability]) -> RTCRtpCodecCapability? {
+        guard let mimeType = codecDict["mimeType"] as? String else { return nil }
+        let clockRate = codecDict["clockRate"] as? NSNumber
+        let channels = codecDict["channels"] as? NSNumber
+        let sdpFmtpLine = codecDict["sdpFmtpLine"] as? [String: String]
+
+        return capabilities.first { cap in
+            guard cap.mimeType.lowercased() == mimeType.lowercased() else { return false }
+            if let clockRate = clockRate, cap.clockRate != clockRate { return false }
+            if let channels = channels, cap.numChannels != channels { return false }
+            if let sdpFmtpLine = sdpFmtpLine, cap.parameters != sdpFmtpLine { return false }
+            return true
+        }
+    }
+
+    static func codecCapabilityToJSON(_ codec: RTCRtpCodecCapability) -> NSDictionary {
+        return [
+            "mimeType": codec.mimeType,
+            "clockRate": codec.clockRate as Any,
+            "channels": codec.numChannels as Any,
+            "sdpFmtpLine": codec.parameters
+        ]
+    }
+
     func setDirection(direction: String) {
         guard let rtcRtpTransceiver = self.rtcRtpTransceiver else { return }
 

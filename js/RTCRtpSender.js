@@ -10,6 +10,11 @@ var exec = require('cordova/exec'),
 	{ MediaStreamTrack } = require('./MediaStreamTrack'),
 	randomNumber = require('random-number').generator({ min: 10000, max: 99999, integer: true });
 
+/**
+ * Capabilities cache (populated at initialization time).
+ */
+var _capabilities = {};
+
 function RTCRtpSender(pc, data) {
 	data = data || {};
 	this._id = data.id || randomNumber();
@@ -99,4 +104,22 @@ RTCRtpSender.prototype.update = function ({ track, params }) {
 	}
 
 	this.params = params;
+};
+
+RTCRtpSender.getCapabilities = function (kind) {
+	return _capabilities[kind] || null;
+};
+
+RTCRtpSender._initCapabilities = function (kind) {
+	exec(
+		function (data) {
+			_capabilities[kind] = data;
+		},
+		function (err) {
+			console.warn('RTCRtpSender._initCapabilities(' + kind + ') failed:', err);
+		},
+		'iosrtcPlugin',
+		'RTCRtpSender_getCapabilities',
+		[kind]
+	);
 };

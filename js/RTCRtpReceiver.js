@@ -3,7 +3,13 @@
  */
 module.exports = RTCRtpReceiver;
 
-var randomNumber = require('random-number').generator({ min: 10000, max: 99999, integer: true });
+var exec = require('cordova/exec'),
+	randomNumber = require('random-number').generator({ min: 10000, max: 99999, integer: true });
+
+/**
+ * Capabilities cache (populated at initialization time).
+ */
+var _capabilities = {};
 
 function RTCRtpReceiver(pc, data) {
 	data = data || {};
@@ -30,4 +36,22 @@ RTCRtpReceiver.prototype.update = function ({ track, params }) {
 	}
 
 	this.params = params;
+};
+
+RTCRtpReceiver.getCapabilities = function (kind) {
+	return _capabilities[kind] || null;
+};
+
+RTCRtpReceiver._initCapabilities = function (kind) {
+	exec(
+		function (data) {
+			_capabilities[kind] = data;
+		},
+		function (err) {
+			console.warn('RTCRtpReceiver._initCapabilities(' + kind + ') failed:', err);
+		},
+		'iosrtcPlugin',
+		'RTCRtpReceiver_getCapabilities',
+		[kind]
+	);
 };

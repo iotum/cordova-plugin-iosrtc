@@ -1,9 +1,9 @@
 /*
- * cordova-plugin-iosrtc v11.2.0
+ * cordova-plugin-iosrtc v11.3.0
  * Cordova iOS plugin exposing the full WebRTC W3C JavaScript APIs
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
- * Copyright 2017-2025 Cordova-RTC (https://github.com/cordova-rtc)
+ * Copyright 2017-2026 Cordova-RTC (https://github.com/cordova-rtc)
  * License MIT
  */
 
@@ -2945,7 +2945,13 @@ function onEvent(data) {
  */
 module.exports = RTCRtpReceiver;
 
-var randomNumber = _dereq_('random-number').generator({ min: 10000, max: 99999, integer: true });
+var exec = _dereq_('cordova/exec'),
+	randomNumber = _dereq_('random-number').generator({ min: 10000, max: 99999, integer: true });
+
+/**
+ * Capabilities cache (populated at initialization time).
+ */
+var _capabilities = {};
 
 function RTCRtpReceiver(pc, data) {
 	data = data || {};
@@ -2974,7 +2980,25 @@ RTCRtpReceiver.prototype.update = function ({ track, params }) {
 	this.params = params;
 };
 
-},{"random-number":28}],15:[function(_dereq_,module,exports){
+RTCRtpReceiver.getCapabilities = function (kind) {
+	return _capabilities[kind] || null;
+};
+
+RTCRtpReceiver._initCapabilities = function (kind) {
+	exec(
+		function (data) {
+			_capabilities[kind] = data;
+		},
+		function (err) {
+			console.warn('RTCRtpReceiver._initCapabilities(' + kind + ') failed:', err);
+		},
+		'iosrtcPlugin',
+		'RTCRtpReceiver_getCapabilities',
+		[kind]
+	);
+};
+
+},{"cordova/exec":undefined,"random-number":28}],15:[function(_dereq_,module,exports){
 /**
  * Expose the RTCRtpSender class.
  */
@@ -2986,6 +3010,11 @@ module.exports = RTCRtpSender;
 var exec = _dereq_('cordova/exec'),
 	{ MediaStreamTrack } = _dereq_('./MediaStreamTrack'),
 	randomNumber = _dereq_('random-number').generator({ min: 10000, max: 99999, integer: true });
+
+/**
+ * Capabilities cache (populated at initialization time).
+ */
+var _capabilities = {};
 
 function RTCRtpSender(pc, data) {
 	data = data || {};
@@ -3076,6 +3105,24 @@ RTCRtpSender.prototype.update = function ({ track, params }) {
 	}
 
 	this.params = params;
+};
+
+RTCRtpSender.getCapabilities = function (kind) {
+	return _capabilities[kind] || null;
+};
+
+RTCRtpSender._initCapabilities = function (kind) {
+	exec(
+		function (data) {
+			_capabilities[kind] = data;
+		},
+		function (err) {
+			console.warn('RTCRtpSender._initCapabilities(' + kind + ') failed:', err);
+		},
+		'iosrtcPlugin',
+		'RTCRtpSender_getCapabilities',
+		[kind]
+	);
 };
 
 },{"./MediaStreamTrack":7,"cordova/exec":undefined,"random-number":28}],16:[function(_dereq_,module,exports){
@@ -3212,6 +3259,22 @@ RTCRtpTransceiver.prototype.stop = function () {
 		this.peerConnection.pcId,
 		this._id
 	]);
+
+	function onResultOK(data) {
+		self.peerConnection.updateTransceiversState(data.transceivers);
+	}
+};
+
+RTCRtpTransceiver.prototype.setCodecPreferences = function (codecs) {
+	var self = this;
+
+	exec(
+		onResultOK,
+		null,
+		'iosrtcPlugin',
+		'RTCPeerConnection_RTCRtpTransceiver_setCodecPreferences',
+		[this.peerConnection.pcId, this._id, codecs]
+	);
 
 	function onResultOK(data) {
 		self.peerConnection.updateTransceiversState(data.transceivers);
@@ -3828,7 +3891,9 @@ var // Dictionary of MediaStreamRenderers.
 	MediaStream = _dereq_('./MediaStream'),
 	{ MediaStreamTrack } = _dereq_('./MediaStreamTrack'),
 	videoElementsHandler = _dereq_('./videoElementsHandler'),
-	{ RTCRtpTransceiver } = _dereq_('./RTCRtpTransceiver');
+	{ RTCRtpTransceiver } = _dereq_('./RTCRtpTransceiver'),
+	RTCRtpSender = _dereq_('./RTCRtpSender'),
+	RTCRtpReceiver = _dereq_('./RTCRtpReceiver');
 
 /**
  * Expose the iosrtc object.
@@ -4033,7 +4098,16 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.webkitMediaStream = MediaStream;
 	window.MediaStreamTrack = MediaStreamTrack;
 	window.RTCRtpTransceiver = RTCRtpTransceiver;
+	window.RTCRtpSender = RTCRtpSender;
+	window.RTCRtpReceiver = RTCRtpReceiver;
 	window.MediaStreamTrackEvent = window.Event;
+
+	// Pre-fetch codec capabilities so RTCRtpSender.getCapabilities() and
+	// RTCRtpReceiver.getCapabilities() can return synchronously.
+	RTCRtpSender._initCapabilities('audio');
+	RTCRtpSender._initCapabilities('video');
+	RTCRtpReceiver._initCapabilities('audio');
+	RTCRtpReceiver._initCapabilities('video');
 
 	// Apply CanvasRenderingContext2D.drawImage monkey patch
 	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
@@ -4103,7 +4177,7 @@ function dump() {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./MediaDevices":4,"./MediaStream":5,"./MediaStreamTrack":7,"./RTCIceCandidate":12,"./RTCPeerConnection":13,"./RTCRtpTransceiver":16,"./RTCSessionDescription":17,"./enumerateDevices":19,"./getUserMedia":20,"./videoElementsHandler":22,"cordova/exec":undefined,"debug":23,"domready":25}],22:[function(_dereq_,module,exports){
+},{"./MediaDevices":4,"./MediaStream":5,"./MediaStreamTrack":7,"./RTCIceCandidate":12,"./RTCPeerConnection":13,"./RTCRtpReceiver":14,"./RTCRtpSender":15,"./RTCRtpTransceiver":16,"./RTCSessionDescription":17,"./enumerateDevices":19,"./getUserMedia":20,"./videoElementsHandler":22,"cordova/exec":undefined,"debug":23,"domready":25}],22:[function(_dereq_,module,exports){
 /**
  * Expose a function that must be called when the library is loaded.
  * And also a helper function.
