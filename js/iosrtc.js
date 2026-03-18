@@ -236,6 +236,13 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.RTCRtpReceiver = RTCRtpReceiver;
 	window.MediaStreamTrackEvent = window.Event;
 
+	// Pre-fetch codec capabilities so RTCRtpSender.getCapabilities() and
+	// RTCRtpReceiver.getCapabilities() can return synchronously.
+	RTCRtpSender._initCapabilities('audio');
+	RTCRtpSender._initCapabilities('video');
+	RTCRtpReceiver._initCapabilities('audio');
+	RTCRtpReceiver._initCapabilities('video');
+
 	// Apply CanvasRenderingContext2D.drawImage monkey patch
 	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
 	CanvasRenderingContext2D.prototype.drawImage = (function () {

@@ -1,5 +1,5 @@
 /*
- * cordova-plugin-iosrtc v11.2.0
+ * cordova-plugin-iosrtc v11.3.0
  * Cordova iOS plugin exposing the full WebRTC W3C JavaScript APIs
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -2948,6 +2948,11 @@ module.exports = RTCRtpReceiver;
 var exec = _dereq_('cordova/exec'),
 	randomNumber = _dereq_('random-number').generator({ min: 10000, max: 99999, integer: true });
 
+/**
+ * Capabilities cache (populated at initialization time).
+ */
+var _capabilities = {};
+
 function RTCRtpReceiver(pc, data) {
 	data = data || {};
 	this._id = data.id || randomNumber();
@@ -2976,17 +2981,21 @@ RTCRtpReceiver.prototype.update = function ({ track, params }) {
 };
 
 RTCRtpReceiver.getCapabilities = function (kind) {
-	return new Promise(function (resolve, reject) {
-		exec(
-			function (data) {
-				resolve(data);
-			},
-			reject,
-			'iosrtcPlugin',
-			'RTCRtpReceiver_getCapabilities',
-			[kind]
-		);
-	});
+	return _capabilities[kind] || null;
+};
+
+RTCRtpReceiver._initCapabilities = function (kind) {
+	exec(
+		function (data) {
+			_capabilities[kind] = data;
+		},
+		function (err) {
+			console.warn('RTCRtpReceiver._initCapabilities(' + kind + ') failed:', err);
+		},
+		'iosrtcPlugin',
+		'RTCRtpReceiver_getCapabilities',
+		[kind]
+	);
 };
 
 },{"cordova/exec":undefined,"random-number":28}],15:[function(_dereq_,module,exports){
@@ -3001,6 +3010,11 @@ module.exports = RTCRtpSender;
 var exec = _dereq_('cordova/exec'),
 	{ MediaStreamTrack } = _dereq_('./MediaStreamTrack'),
 	randomNumber = _dereq_('random-number').generator({ min: 10000, max: 99999, integer: true });
+
+/**
+ * Capabilities cache (populated at initialization time).
+ */
+var _capabilities = {};
 
 function RTCRtpSender(pc, data) {
 	data = data || {};
@@ -3094,17 +3108,21 @@ RTCRtpSender.prototype.update = function ({ track, params }) {
 };
 
 RTCRtpSender.getCapabilities = function (kind) {
-	return new Promise(function (resolve, reject) {
-		exec(
-			function (data) {
-				resolve(data);
-			},
-			reject,
-			'iosrtcPlugin',
-			'RTCRtpSender_getCapabilities',
-			[kind]
-		);
-	});
+	return _capabilities[kind] || null;
+};
+
+RTCRtpSender._initCapabilities = function (kind) {
+	exec(
+		function (data) {
+			_capabilities[kind] = data;
+		},
+		function (err) {
+			console.warn('RTCRtpSender._initCapabilities(' + kind + ') failed:', err);
+		},
+		'iosrtcPlugin',
+		'RTCRtpSender_getCapabilities',
+		[kind]
+	);
 };
 
 },{"./MediaStreamTrack":7,"cordova/exec":undefined,"random-number":28}],16:[function(_dereq_,module,exports){
@@ -4083,6 +4101,13 @@ function registerGlobals(doNotRestoreCallbacksSupport) {
 	window.RTCRtpSender = RTCRtpSender;
 	window.RTCRtpReceiver = RTCRtpReceiver;
 	window.MediaStreamTrackEvent = window.Event;
+
+	// Pre-fetch codec capabilities so RTCRtpSender.getCapabilities() and
+	// RTCRtpReceiver.getCapabilities() can return synchronously.
+	RTCRtpSender._initCapabilities('audio');
+	RTCRtpSender._initCapabilities('video');
+	RTCRtpReceiver._initCapabilities('audio');
+	RTCRtpReceiver._initCapabilities('video');
 
 	// Apply CanvasRenderingContext2D.drawImage monkey patch
 	var drawImage = CanvasRenderingContext2D.prototype.drawImage;
