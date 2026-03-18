@@ -128,8 +128,8 @@ class PluginRTCRtpTransceiver : NSObject {
         let mediaType = rtcRtpTransceiver.mediaType
         let kind = mediaType == .audio ? kRTCMediaStreamTrackKindAudio : kRTCMediaStreamTrackKindVideo
 
-        let senderCapabilities = factory.rtpSenderCapabilitiesForKind(kind)
-        let receiverCapabilities = factory.rtpReceiverCapabilitiesForKind(kind)
+        let senderCapabilities = factory.rtpSenderCapabilities(forKind: kind)
+        let receiverCapabilities = factory.rtpReceiverCapabilities(forKind: kind)
 
         var allCapabilities: [RTCRtpCodecCapability] = []
         allCapabilities.append(contentsOf: senderCapabilities.codecs)

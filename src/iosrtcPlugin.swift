@@ -609,7 +609,7 @@ class iosrtcPlugin : CDVPlugin {
 		let kind = command.argument(at: 0) as! String
 
 		self.queue.async {
-			let capabilities = self.rtcPeerConnectionFactory.rtpSenderCapabilitiesForKind(kind)
+			let capabilities = self.rtcPeerConnectionFactory.rtpSenderCapabilities(forKind: kind)
 			let codecsJSON = capabilities.codecs.map { PluginRTCRtpTransceiver.codecCapabilityToJSON($0) }
 			let response: NSDictionary = ["codecs": codecsJSON]
 			let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: response as? [AnyHashable: Any])
@@ -623,7 +623,7 @@ class iosrtcPlugin : CDVPlugin {
 		let kind = command.argument(at: 0) as! String
 
 		self.queue.async {
-			let capabilities = self.rtcPeerConnectionFactory.rtpReceiverCapabilitiesForKind(kind)
+			let capabilities = self.rtcPeerConnectionFactory.rtpReceiverCapabilities(forKind: kind)
 			let codecsJSON = capabilities.codecs.map { PluginRTCRtpTransceiver.codecCapabilityToJSON($0) }
 			let response: NSDictionary = ["codecs": codecsJSON]
 			let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: response as? [AnyHashable: Any])
