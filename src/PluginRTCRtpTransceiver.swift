@@ -102,15 +102,17 @@ class PluginRTCRtpTransceiver : NSObject {
         guard mediaType == .audio else { return }
         guard self.direction != newDirection else { return }
 
-        let sendDirections = [RTCRtpTransceiverDirection.sendOnly, RTCRtpTransceiverDirection.sendRecv]
-        let wasSending = sendDirections.contains(self.direction)
-        let willSend = sendDirections.contains(newDirection)
+        // Any direction that involves audio I/O (send, receive, or both) requires
+        // the audio unit to be active. inactive/stopped means no audio activity.
+        let activeDirections = [RTCRtpTransceiverDirection.sendOnly, RTCRtpTransceiverDirection.sendRecv, RTCRtpTransceiverDirection.recvOnly]
+        let wasActive = activeDirections.contains(self.direction)
+        let willBeActive = activeDirections.contains(newDirection)
 
         self.direction = newDirection
 
-        if(wasSending != willSend) {
+        if wasActive != willBeActive {
             let audioController = PluginRTCAudioController.instance
-            if(willSend) {
+            if willBeActive {
                 audioController.audioSenderCreated()
             } else {
                 audioController.audioSenderDestroyed()
@@ -183,10 +185,10 @@ class PluginRTCRtpTransceiver : NSObject {
     func setDirection(direction: String) {
         guard let rtcRtpTransceiver = self.rtcRtpTransceiver else { return }
 
-        let direction = PluginRTCRtpTransceiver.stringToDirection(direction)
+        let newDirection = PluginRTCRtpTransceiver.stringToDirection(direction)
 
-        rtcRtpTransceiver.setDirection(direction, error: nil)
-        self.direction = direction
+        rtcRtpTransceiver.setDirection(newDirection, error: nil)
+        updateSendersCount(for: rtcRtpTransceiver.mediaType, with: newDirection)
     }
     
     static func stringToDirection(_ direction: String) -> RTCRtpTransceiverDirection {
