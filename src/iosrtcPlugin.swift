@@ -1374,25 +1374,6 @@ class iosrtcPlugin : CDVPlugin {
         PluginRTCAudioController.setDefaultAudioOutput(isSpeaker: isSpeaker)
 	}
 
-	@objc(setUseManualAudio:) func setUseManualAudio(_ command: CDVInvokedUrlCommand) {
-		NSLog("iosrtcPlugin#setUseManualAudio()")
-		let enabled: Bool = CBool(command.arguments[0] as! Bool)
-
-		PluginRTCAudioController.setUseManualAudio(enabled: enabled)
-	}
-
-	@objc(audioSessionDidActivate:) func audioSessionDidActivate(_ command: CDVInvokedUrlCommand) {
-		NSLog("iosrtcPlugin#audioSessionDidActivate()")
-
-		PluginRTCAudioController.audioSessionDidActivate(AVAudioSession.sharedInstance())
-	}
-
-	@objc(audioSessionDidDeactivate:) func audioSessionDidDeactivate(_ command: CDVInvokedUrlCommand) {
-		NSLog("iosrtcPlugin#audioSessionDidDeactivate()")
-
-		PluginRTCAudioController.audioSessionDidDeactivate(AVAudioSession.sharedInstance())
-	}
-
 	@objc(dump:) func dump(_ command: CDVInvokedUrlCommand) {
 		NSLog("iosrtcPlugin#dump()")
 

@@ -35,8 +35,6 @@ class PluginRTCAudioController {
 
 	static private var audioInputSelected: AVAudioSessionPortDescription? = nil
 
-	static private var _useManualAudio: Bool = false
-
 	//
 	// Audio Input
 	//
@@ -176,40 +174,6 @@ class PluginRTCAudioController {
         RTCAudioSessionConfiguration.setWebRTC(audioConfiguration)
     }
 
-	/**
-	 * Enable or disable manual audio control. When enabled, WebRTC will not initialize the
-	 * audio unit automatically. The plugin will automatically activate and deactivate the
-	 * WebRTC audio unit when audio senders are created and destroyed (i.e. on addStream /
-	 * removeStream / close). For fine-grained CallKit control the explicit
-	 * audioSessionDidActivate / audioSessionDidDeactivate APIs are still available.
-	 */
-	static func setUseManualAudio(enabled: Bool) {
-		NSLog("PluginRTCAudioController#setUseManualAudio() | enabled \(enabled)")
-		_useManualAudio = enabled
-		RTCAudioSession.sharedInstance().useManualAudio = enabled
-	}
-
-	/**
-	 * Notify WebRTC that the audio session has been activated by an external controller
-	 * such as CallKit. This enables the WebRTC audio unit.
-	 * Must be called after CallKit's CXProviderDelegate audioSessionActivated.
-	 */
-	static func audioSessionDidActivate(_ session: AVAudioSession) {
-		NSLog("PluginRTCAudioController#audioSessionDidActivate()")
-		RTCAudioSession.sharedInstance().audioSessionDidActivate(session)
-		RTCAudioSession.sharedInstance().isAudioEnabled = true
-	}
-
-	/**
-	 * Notify WebRTC that the audio session has been deactivated by an external controller
-	 * such as CallKit. This disables the WebRTC audio unit.
-	 * Must be called after CallKit's CXProviderDelegate audioSessionDeactivated.
-	 */
-	static func audioSessionDidDeactivate(_ session: AVAudioSession) {
-		NSLog("PluginRTCAudioController#audioSessionDidDeactivate()")
-		RTCAudioSession.sharedInstance().audioSessionDidDeactivate(session)
-		RTCAudioSession.sharedInstance().isAudioEnabled = false
-	}
 	//
 	// Audio Output
 	//
@@ -219,6 +183,11 @@ class PluginRTCAudioController {
 	private var audioSendersCount = 0
 
 	init() {
+		// Always enable manual audio mode so WebRTC does not auto-start/stop the audio
+		// unit. The plugin activates and deactivates it internally via firstAudioSenderCreated
+		// and lastAudioSenderDestroyed, covering all call paths (addStream, addTrack, close, etc.)
+		RTCAudioSession.sharedInstance().useManualAudio = true
+
 		let shouldManualInit = Bundle.main.object(forInfoDictionaryKey: "ManualInitAudioDevice") as? String
 
 		if(shouldManualInit == "FALSE") {
@@ -248,7 +217,6 @@ class PluginRTCAudioController {
 
 	private func firstAudioSenderCreated() {
 		let rtcAudioSession = RTCAudioSession.sharedInstance()
-		let useManualAudio = Self._useManualAudio
 
 		rtcAudioSession.lockForConfiguration()
 
@@ -268,22 +236,17 @@ class PluginRTCAudioController {
 
 		rtcAudioSession.unlockForConfiguration()
 
-		if useManualAudio {
-			NSLog("PluginRTCAudioController#firstAudioSenderCreated() | useManualAudio=true, auto-activating audio session")
-			rtcAudioSession.audioSessionDidActivate(AVAudioSession.sharedInstance())
-			rtcAudioSession.isAudioEnabled = true
-		}
+		NSLog("PluginRTCAudioController#firstAudioSenderCreated() | activating audio session")
+		rtcAudioSession.audioSessionDidActivate(AVAudioSession.sharedInstance())
+		rtcAudioSession.isAudioEnabled = true
 	}
 
 	private func lastAudioSenderDestroyed() {
 		let rtcAudioSession = RTCAudioSession.sharedInstance()
-		let useManualAudio = Self._useManualAudio
 
-		if useManualAudio {
-			NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | useManualAudio=true, auto-deactivating audio session")
-			rtcAudioSession.audioSessionDidDeactivate(AVAudioSession.sharedInstance())
-			rtcAudioSession.isAudioEnabled = false
-		}
+		NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | deactivating audio session")
+		rtcAudioSession.audioSessionDidDeactivate(AVAudioSession.sharedInstance())
+		rtcAudioSession.isAudioEnabled = false
 
 		rtcAudioSession.lockForConfiguration()
 
