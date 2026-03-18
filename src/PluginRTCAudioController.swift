@@ -35,6 +35,8 @@ class PluginRTCAudioController {
 
 	static private var audioInputSelected: AVAudioSessionPortDescription? = nil
 
+	static private var _useManualAudio: Bool = false
+
 	//
 	// Audio Input
 	//
@@ -176,12 +178,14 @@ class PluginRTCAudioController {
 
 	/**
 	 * Enable or disable manual audio control. When enabled, WebRTC will not initialize the
-	 * audio unit automatically. Instead, the app is responsible for calling
-	 * audioSessionDidActivate / audioSessionDidDeactivate (e.g. from a CallKit provider) to
-	 * grant or revoke WebRTC's permission to use the audio unit.
+	 * audio unit automatically. The plugin will automatically activate and deactivate the
+	 * WebRTC audio unit when audio senders are created and destroyed (i.e. on addStream /
+	 * removeStream / close). For fine-grained CallKit control the explicit
+	 * audioSessionDidActivate / audioSessionDidDeactivate APIs are still available.
 	 */
 	static func setUseManualAudio(enabled: Bool) {
 		NSLog("PluginRTCAudioController#setUseManualAudio() | enabled \(enabled)")
+		_useManualAudio = enabled
 		RTCAudioSession.sharedInstance().useManualAudio = enabled
 	}
 
@@ -244,11 +248,9 @@ class PluginRTCAudioController {
 
 	private func firstAudioSenderCreated() {
 		let rtcAudioSession = RTCAudioSession.sharedInstance()
+		let useManualAudio = Self._useManualAudio
 
 		rtcAudioSession.lockForConfiguration()
-		defer {
-			rtcAudioSession.unlockForConfiguration()
-		}
 
 		let defaultWebRTCConfiguration = RTCAudioSessionConfiguration()
 
@@ -263,15 +265,27 @@ class PluginRTCAudioController {
 
 		try? rtcAudioSession.setCategory(AVAudioSession.Category(rawValue: category), with: categoryOptions)
 		try? rtcAudioSession.setMode(AVAudioSession.Mode(rawValue: mode))
+
+		rtcAudioSession.unlockForConfiguration()
+
+		if useManualAudio {
+			NSLog("PluginRTCAudioController#firstAudioSenderCreated() | useManualAudio=true, auto-activating audio session")
+			rtcAudioSession.audioSessionDidActivate(AVAudioSession.sharedInstance())
+			rtcAudioSession.isAudioEnabled = true
+		}
 	}
 
 	private func lastAudioSenderDestroyed() {
 		let rtcAudioSession = RTCAudioSession.sharedInstance()
+		let useManualAudio = Self._useManualAudio
+
+		if useManualAudio {
+			NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | useManualAudio=true, auto-deactivating audio session")
+			rtcAudioSession.audioSessionDidDeactivate(AVAudioSession.sharedInstance())
+			rtcAudioSession.isAudioEnabled = false
+		}
 
 		rtcAudioSession.lockForConfiguration()
-		defer {
-			rtcAudioSession.unlockForConfiguration()
-		}
 
 		let category = Self.inactiveAudioCategory.rawValue
 		let mode = Self.audioModeDefault.rawValue
@@ -284,6 +298,9 @@ class PluginRTCAudioController {
 
 		try? rtcAudioSession.setMode(AVAudioSession.Mode(rawValue: mode))
 		try? rtcAudioSession.setCategory(AVAudioSession.Category(rawValue: category), with: categoryOptions)
+
+		rtcAudioSession.unlockForConfiguration()
+
 		try? AVAudioSession.sharedInstance().setActive(true)
 	}
 
