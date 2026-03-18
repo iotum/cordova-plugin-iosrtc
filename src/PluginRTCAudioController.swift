@@ -9,8 +9,9 @@
 import Foundation
 import WebRTC
 import AVFoundation
+import CallKit
 
-class PluginRTCAudioController {
+class PluginRTCAudioController: NSObject, CXCallObserverDelegate {
 	static let instance = PluginRTCAudioController()
 
 	static private let inactiveAudioCategory: AVAudioSession.Category = .playback
@@ -180,8 +181,11 @@ class PluginRTCAudioController {
 	static private var speakerEnabled: Bool = false
 
 	private var audioSendersCount = 0
+	private let callObserver = CXCallObserver()
 
-	init() {
+	override init() {
+		super.init()
+
 		let shouldManualInit = Bundle.main.object(forInfoDictionaryKey: "ManualInitAudioDevice") as? String
 
 		if(shouldManualInit == "FALSE") {
@@ -193,6 +197,26 @@ class PluginRTCAudioController {
 			selector: #selector(self.audioRouteChangeListener(_:)),
 			name: AVAudioSession.routeChangeNotification,
 			object: nil)
+
+		callObserver.setDelegate(self, queue: DispatchQueue.main)
+	}
+
+	func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
+		let activeCalls = callObserver.calls.filter { !$0.hasEnded }
+
+		if call.hasEnded {
+			NSLog("PluginRTCAudioController#callObserver() | call ended, active calls remaining: %d", activeCalls.count)
+			if activeCalls.isEmpty {
+				RTCAudioSession.sharedInstance().audioSessionDidDeactivate(AVAudioSession.sharedInstance())
+				PluginRTCAudioController.initAudioDevices()
+				PluginRTCAudioController.restoreInputOutputAudioDevice()
+			}
+		} else if call.hasConnected && !call.hasEnded {
+			NSLog("PluginRTCAudioController#callObserver() | call connected, active calls: %d", activeCalls.count)
+			if activeCalls.count == 1 {
+				RTCAudioSession.sharedInstance().audioSessionDidActivate(AVAudioSession.sharedInstance())
+			}
+		}
 	}
 
 	@objc dynamic fileprivate func audioRouteChangeListener(_ notification:Notification) {
