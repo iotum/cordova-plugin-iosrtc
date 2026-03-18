@@ -173,6 +173,39 @@ class PluginRTCAudioController {
 
         RTCAudioSessionConfiguration.setWebRTC(audioConfiguration)
     }
+
+	/**
+	 * Enable or disable manual audio control. When enabled, WebRTC will not initialize the
+	 * audio unit automatically. Instead, the app is responsible for calling
+	 * audioSessionDidActivate / audioSessionDidDeactivate (e.g. from a CallKit provider) to
+	 * grant or revoke WebRTC's permission to use the audio unit.
+	 */
+	static func setUseManualAudio(enabled: Bool) {
+		NSLog("PluginRTCAudioController#setUseManualAudio() | enabled \(enabled)")
+		RTCAudioSession.sharedInstance().useManualAudio = enabled
+	}
+
+	/**
+	 * Notify WebRTC that the audio session has been activated by an external controller
+	 * such as CallKit. This enables the WebRTC audio unit.
+	 * Must be called after CallKit's CXProviderDelegate audioSessionActivated.
+	 */
+	static func audioSessionDidActivate(_ session: AVAudioSession) {
+		NSLog("PluginRTCAudioController#audioSessionDidActivate()")
+		RTCAudioSession.sharedInstance().audioSessionDidActivate(session)
+		RTCAudioSession.sharedInstance().isAudioEnabled = true
+	}
+
+	/**
+	 * Notify WebRTC that the audio session has been deactivated by an external controller
+	 * such as CallKit. This disables the WebRTC audio unit.
+	 * Must be called after CallKit's CXProviderDelegate audioSessionDeactivated.
+	 */
+	static func audioSessionDidDeactivate(_ session: AVAudioSession) {
+		NSLog("PluginRTCAudioController#audioSessionDidDeactivate()")
+		RTCAudioSession.sharedInstance().audioSessionDidDeactivate(session)
+		RTCAudioSession.sharedInstance().isAudioEnabled = false
+	}
 	//
 	// Audio Output
 	//
