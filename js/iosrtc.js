@@ -65,6 +65,12 @@ module.exports = {
 	// Expose a function to initAudioDevices if needed, sets the audio session active
 	initAudioDevices: initAudioDevices,
 
+	// Notify WebRTC that the audio session was activated by CallKit (or other external party).
+	audioSessionDidActivate: audioSessionDidActivate,
+
+	// Notify WebRTC that the audio session was deactivated by CallKit (or other external party).
+	audioSessionDidDeactivate: audioSessionDidDeactivate,
+
 	// Expose a function to pollute window and naigator namespaces.
 	registerGlobals: registerGlobals,
 
@@ -137,6 +143,18 @@ function initAudioDevices() {
 	debug('initAudioDevices()');
 
 	exec(null, null, 'iosrtcPlugin', 'initAudioDevices', []);
+}
+
+function audioSessionDidActivate() {
+	debug('audioSessionDidActivate()');
+
+	exec(null, null, 'iosrtcPlugin', 'RTCAudioSessionDidActivate', []);
+}
+
+function audioSessionDidDeactivate() {
+	debug('audioSessionDidDeactivate()');
+
+	exec(null, null, 'iosrtcPlugin', 'RTCAudioSessionDidDeactivate', []);
 }
 
 function callbackifyMethod(originalMethod) {

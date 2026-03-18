@@ -1374,6 +1374,18 @@ class iosrtcPlugin : CDVPlugin {
         PluginRTCAudioController.setDefaultAudioOutput(isSpeaker: isSpeaker)
 	}
 
+	@objc(RTCAudioSessionDidActivate:) func RTCAudioSessionDidActivate(_ command: CDVInvokedUrlCommand) {
+		NSLog("iosrtcPlugin#RTCAudioSessionDidActivate()")
+
+		RTCAudioSession.sharedInstance().audioSessionDidActivate(AVAudioSession.sharedInstance())
+	}
+
+	@objc(RTCAudioSessionDidDeactivate:) func RTCAudioSessionDidDeactivate(_ command: CDVInvokedUrlCommand) {
+		NSLog("iosrtcPlugin#RTCAudioSessionDidDeactivate()")
+
+		RTCAudioSession.sharedInstance().audioSessionDidDeactivate(AVAudioSession.sharedInstance())
+	}
+
 	@objc(dump:) func dump(_ command: CDVInvokedUrlCommand) {
 		NSLog("iosrtcPlugin#dump()")
 
