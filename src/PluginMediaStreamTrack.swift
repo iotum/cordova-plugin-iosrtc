@@ -17,14 +17,10 @@ class PluginMediaStreamTrack : NSObject {
 		self.rtcMediaStreamTrack = rtcMediaStreamTrack
 
 		if (trackId == nil) {
+			// Expose the native WebRTC track ID directly.
+			// originalId and id are kept in sync here for use by PluginRTCPeerConnection transceiver lookups.
 			self.originalId = rtcMediaStreamTrack.trackId;
-			// Handle possible duplicate remote trackId with  janus or short duplicate name
-			// See: https://github.com/cordova-rtc/cordova-plugin-iosrtc/issues/432
-			if (rtcMediaStreamTrack.trackId.count<36) {
-				self.id = rtcMediaStreamTrack.trackId + "_" + UUID().uuidString;
-			} else {
-				self.id = rtcMediaStreamTrack.trackId;
-			}
+			self.id = rtcMediaStreamTrack.trackId;
 		} else {
 			self.originalId = String();
 			self.id = trackId!;
