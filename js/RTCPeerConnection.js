@@ -957,7 +957,7 @@ function onEvent(data) {
 			break;
 
 		case 'track':
-			var track = (event.track = new MediaStreamTrack(data.track));
+			var track = (event.track = MediaStreamTrack.findOrCreate(data.track));
 			event.receiver = new RTCRtpReceiver(self, { track: track });
 
 			transceiver = this.transceivers.find((t) => t.receiver.track.id === track.id);
