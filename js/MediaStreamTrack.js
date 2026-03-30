@@ -85,8 +85,8 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 						? CordovaCall.mute(this._sessionId, () => (this._enabled = false))
 						: CordovaCall.unmute(this._sessionId, () => (this._enabled = true));
 					this._enabled = !!value;
-					exec(null, null, 'iosrtcPlugin', 'MediaStreamTrack_setEnabled', [this.id, this._enabled]);
 				}
+				exec(null, null, 'iosrtcPlugin', 'MediaStreamTrack_setEnabled', [this.id, this._enabled]);
 				return;
 			}
 		}

@@ -32,11 +32,6 @@ class PluginMediaStreamTrack : NSObject {
 
 		self.kind = rtcMediaStreamTrack.kind
 		self.renders = [:]
-
-		// Ensure the track is enabled when first wrapped. The underlying
-		// RTCMediaStreamTrack may have been disabled by a previous stop() call
-		// (e.g. after hold teardown) — reset it so remote audio plays on unhold.
-		self.rtcMediaStreamTrack.isEnabled = true
 	}
 
 	deinit {
