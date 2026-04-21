@@ -12,6 +12,9 @@ import AVFoundation
 
 class PluginRTCAudioController {
 	static let instance = PluginRTCAudioController()
+	
+	// Have callkit manually manage the audio session, where iosrtc should not be messing with it at all
+	static private var useManualAudio: Bool = true
 
 	static private let inactiveAudioCategory: AVAudioSession.Category = .playback
 	static private let inactiveCategoryOptions: AVAudioSession.CategoryOptions = []
@@ -40,6 +43,10 @@ class PluginRTCAudioController {
 	//
 
 	static func initAudioDevices() -> Void {
+		guard !useManualAudio else {
+			NSLog("PluginRTCAudioController#initAudioDevices() | skipped, useManualAudio is enabled")
+			return
+		}
 
 		PluginRTCAudioController.setCategory()
 
@@ -52,7 +59,10 @@ class PluginRTCAudioController {
 	}
 
 	static func setCategory() -> Void {
-		// Enable speaker
+		guard !useManualAudio else {
+			NSLog("PluginRTCAudioController#setCategory() | skipped, useManualAudio is enabled")
+			return
+		}
 		NSLog("PluginRTCAudioController#setCategory()")
 
 		do {
@@ -80,6 +90,11 @@ class PluginRTCAudioController {
 
 	// Setter function inserted by set specific audio device
 	static func restoreInputOutputAudioDevice() -> Void {
+		guard !useManualAudio else {
+			NSLog("PluginRTCAudioController#restoreInputOutputAudioDevice() | skipped, useManualAudio is enabled")
+			return
+		}
+
 		let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
 
 		do {
@@ -92,6 +107,10 @@ class PluginRTCAudioController {
 	}
 
 	static func setOutputSpeakerIfNeed(enabled: Bool) {
+		guard !useManualAudio else {
+			NSLog("PluginRTCAudioController#setOutputSpeakerIfNeed() | skipped, useManualAudio is enabled")
+			return
+		}
 
 		speakerEnabled = enabled
 
@@ -126,7 +145,10 @@ class PluginRTCAudioController {
 	}
 
 	static func selectAudioOutputSpeaker() {
-		// Enable speaker
+		guard !useManualAudio else {
+			NSLog("PluginRTCAudioController#selectAudioOutputSpeaker() | skipped, useManualAudio is enabled")
+			return
+		}
 		NSLog("PluginRTCAudioController#selectAudioOutputSpeaker()")
 
 		speakerEnabled = true;
@@ -142,7 +164,10 @@ class PluginRTCAudioController {
 	}
 
 	static func selectAudioOutputEarpiece() {
-		// Disable speaker, switched to default
+		guard !useManualAudio else {
+			NSLog("PluginRTCAudioController#selectAudioOutputEarpiece() | skipped, useManualAudio is enabled")
+			return
+		}
 		NSLog("PluginRTCAudioController#selectAudioOutputEarpiece()")
 
 		speakerEnabled = false;
@@ -158,8 +183,11 @@ class PluginRTCAudioController {
 	}
 
     static func setDefaultAudioOutput(isSpeaker: Bool) {
+			  guard !useManualAudio else {
+            NSLog("PluginRTCAudioController#setDefaultAudioOutput() | skipped, useManualAudio is enabled")
+            return
+        }
         NSLog("PluginRTCAudioController#setDefaultAudioOutput() | isSpeaker \(isSpeaker)")
-        
     	speakerEnabled = isSpeaker
 
         let audioConfiguration = RTCAudioSessionConfiguration()
@@ -183,22 +211,22 @@ class PluginRTCAudioController {
 	private var audioSendersCount = 0
 
 	init() {
-		// Always enable manual audio mode so WebRTC does not auto-start/stop the audio
-		// unit. The plugin activates and deactivates it internally via firstAudioSenderCreated
-		// and lastAudioSenderDestroyed, covering all call paths (addStream, addTrack, close, etc.)
-		RTCAudioSession.sharedInstance().useManualAudio = true
+		Self.useManualAudio = (Bundle.main.object(forInfoDictionaryKey: "UseManualAudio") as? String) != "FALSE"
+		RTCAudioSession.sharedInstance().useManualAudio = Self.useManualAudio
 
 		let shouldManualInit = Bundle.main.object(forInfoDictionaryKey: "ManualInitAudioDevice") as? String
 
-		if(shouldManualInit == "FALSE") {
+		if(shouldManualInit == "FALSE" && !Self.useManualAudio) {
 			PluginRTCAudioController.initAudioDevices()
 		}
 
-		NotificationCenter.default.addObserver(
-			self,
-			selector: #selector(self.audioRouteChangeListener(_:)),
-			name: AVAudioSession.routeChangeNotification,
-			object: nil)
+		if(!Self.useManualAudio) {
+			NotificationCenter.default.addObserver(
+				self,
+				selector: #selector(self.audioRouteChangeListener(_:)),
+				name: AVAudioSession.routeChangeNotification,
+				object: nil)
+		}
 	}
 
 	@objc dynamic fileprivate func audioRouteChangeListener(_ notification:Notification) {
@@ -216,9 +244,17 @@ class PluginRTCAudioController {
 	}
 
 	private func firstAudioSenderCreated() {
+		guard !Self.useManualAudio else {
+			NSLog("PluginRTCAudioController#firstAudioSenderCreated() | skipped, useManualAudio is enabled")
+			return
+		}
+
 		let rtcAudioSession = RTCAudioSession.sharedInstance()
 
 		rtcAudioSession.lockForConfiguration()
+		defer {
+			rtcAudioSession.unlockForConfiguration()
+		}
 
 		let defaultWebRTCConfiguration = RTCAudioSessionConfiguration()
 
@@ -233,22 +269,20 @@ class PluginRTCAudioController {
 
 		try? rtcAudioSession.setCategory(AVAudioSession.Category(rawValue: category), with: categoryOptions)
 		try? rtcAudioSession.setMode(AVAudioSession.Mode(rawValue: mode))
-
-		rtcAudioSession.unlockForConfiguration()
-
-		NSLog("PluginRTCAudioController#firstAudioSenderCreated() | activating audio session")
-		rtcAudioSession.audioSessionDidActivate(AVAudioSession.sharedInstance())
-		rtcAudioSession.isAudioEnabled = true
 	}
 
 	private func lastAudioSenderDestroyed() {
+		guard !Self.useManualAudio else {
+			NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | skipped, useManualAudio is enabled")
+			return
+		}
+
 		let rtcAudioSession = RTCAudioSession.sharedInstance()
 
-		NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | deactivating audio session")
-		rtcAudioSession.audioSessionDidDeactivate(AVAudioSession.sharedInstance())
-		rtcAudioSession.isAudioEnabled = false
-
 		rtcAudioSession.lockForConfiguration()
+		defer {
+			rtcAudioSession.unlockForConfiguration()
+		}
 
 		let category = Self.inactiveAudioCategory.rawValue
 		let mode = Self.audioModeDefault.rawValue
@@ -261,9 +295,6 @@ class PluginRTCAudioController {
 
 		try? rtcAudioSession.setMode(AVAudioSession.Mode(rawValue: mode))
 		try? rtcAudioSession.setCategory(AVAudioSession.Category(rawValue: category), with: categoryOptions)
-
-		rtcAudioSession.unlockForConfiguration()
-
 		try? AVAudioSession.sharedInstance().setActive(true)
 	}
 
