@@ -14,7 +14,7 @@ class PluginRTCAudioController {
 	static let instance = PluginRTCAudioController()
 	
 	// Have CallKit manually manage the audio session, where iosrtc should not be messing with it at all
-	static private var useManualAudio: Bool = true
+	static private var cedeAudioSessionToCallKit: Bool = true
 
 	static private let inactiveAudioCategory: AVAudioSession.Category = .playback
 	static private let inactiveCategoryOptions: AVAudioSession.CategoryOptions = []
@@ -43,8 +43,8 @@ class PluginRTCAudioController {
 	//
 
 	static func initAudioDevices() -> Void {
-		guard !useManualAudio else {
-			NSLog("PluginRTCAudioController#initAudioDevices() | skipped, useManualAudio is enabled")
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#initAudioDevices() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 
@@ -59,8 +59,8 @@ class PluginRTCAudioController {
 	}
 
 	static func setCategory() -> Void {
-		guard !useManualAudio else {
-			NSLog("PluginRTCAudioController#setCategory() | skipped, useManualAudio is enabled")
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#setCategory() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 		NSLog("PluginRTCAudioController#setCategory()")
@@ -90,8 +90,8 @@ class PluginRTCAudioController {
 
 	// Setter function inserted by set specific audio device
 	static func restoreInputOutputAudioDevice() -> Void {
-		guard !useManualAudio else {
-			NSLog("PluginRTCAudioController#restoreInputOutputAudioDevice() | skipped, useManualAudio is enabled")
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#restoreInputOutputAudioDevice() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 
@@ -107,8 +107,8 @@ class PluginRTCAudioController {
 	}
 
 	static func setOutputSpeakerIfNeed(enabled: Bool) {
-		guard !useManualAudio else {
-			NSLog("PluginRTCAudioController#setOutputSpeakerIfNeed() | skipped, useManualAudio is enabled")
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#setOutputSpeakerIfNeed() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 
@@ -145,8 +145,8 @@ class PluginRTCAudioController {
 	}
 
 	static func selectAudioOutputSpeaker() {
-		guard !useManualAudio else {
-			NSLog("PluginRTCAudioController#selectAudioOutputSpeaker() | skipped, useManualAudio is enabled")
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#selectAudioOutputSpeaker() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 		NSLog("PluginRTCAudioController#selectAudioOutputSpeaker()")
@@ -164,8 +164,8 @@ class PluginRTCAudioController {
 	}
 
 	static func selectAudioOutputEarpiece() {
-		guard !useManualAudio else {
-			NSLog("PluginRTCAudioController#selectAudioOutputEarpiece() | skipped, useManualAudio is enabled")
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#selectAudioOutputEarpiece() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 		NSLog("PluginRTCAudioController#selectAudioOutputEarpiece()")
@@ -182,25 +182,25 @@ class PluginRTCAudioController {
 		};
 	}
 
-    static func setDefaultAudioOutput(isSpeaker: Bool) {
-			  guard !useManualAudio else {
-            NSLog("PluginRTCAudioController#setDefaultAudioOutput() | skipped, useManualAudio is enabled")
-            return
-        }
-        NSLog("PluginRTCAudioController#setDefaultAudioOutput() | isSpeaker \(isSpeaker)")
-    	speakerEnabled = isSpeaker
+	static func setDefaultAudioOutput(isSpeaker: Bool) {
+		guard !cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#setDefaultAudioOutput() | skipped, cedeAudioSessionToCallKit is enabled")
+			return
+		}
+		NSLog("PluginRTCAudioController#setDefaultAudioOutput() | isSpeaker \(isSpeaker)")
+		speakerEnabled = isSpeaker
 
-        let audioConfiguration = RTCAudioSessionConfiguration()
-        audioConfiguration.category = PluginRTCAudioController.audioCategory.rawValue;
-        audioConfiguration.categoryOptions = PluginRTCAudioController.audioCategoryOptions
-        audioConfiguration.mode = PluginRTCAudioController.audioMode.rawValue
+		let audioConfiguration = RTCAudioSessionConfiguration()
+		audioConfiguration.category = PluginRTCAudioController.audioCategory.rawValue;
+		audioConfiguration.categoryOptions = PluginRTCAudioController.audioCategoryOptions
+		audioConfiguration.mode = PluginRTCAudioController.audioMode.rawValue
 
-        if (speakerEnabled) {
-            audioConfiguration.categoryOptions.insert(AVAudioSession.CategoryOptions.defaultToSpeaker)
-        }
+		if (speakerEnabled) {
+			audioConfiguration.categoryOptions.insert(AVAudioSession.CategoryOptions.defaultToSpeaker)
+		}
 
-        RTCAudioSessionConfiguration.setWebRTC(audioConfiguration)
-    }
+		RTCAudioSessionConfiguration.setWebRTC(audioConfiguration)
+	}
 
 	//
 	// Audio Output
@@ -211,16 +211,16 @@ class PluginRTCAudioController {
 	private var audioSendersCount = 0
 
 	init() {
-		Self.useManualAudio = (Bundle.main.object(forInfoDictionaryKey: "UseManualAudio") as? String) != "FALSE"
-		RTCAudioSession.sharedInstance().useManualAudio = Self.useManualAudio
+		Self.cedeAudioSessionToCallKit = (Bundle.main.object(forInfoDictionaryKey: "CedeAudioSessionToCallKit") as? String) != "FALSE"
+		RTCAudioSession.sharedInstance().useManualAudio = Self.cedeAudioSessionToCallKit
 
 		let shouldManualInit = Bundle.main.object(forInfoDictionaryKey: "ManualInitAudioDevice") as? String
 
-		if(shouldManualInit == "FALSE" && !Self.useManualAudio) {
+		if(shouldManualInit == "FALSE" && !Self.cedeAudioSessionToCallKit) {
 			PluginRTCAudioController.initAudioDevices()
 		}
 
-		if(!Self.useManualAudio) {
+		if(!Self.cedeAudioSessionToCallKit) {
 			NotificationCenter.default.addObserver(
 				self,
 				selector: #selector(self.audioRouteChangeListener(_:)),
@@ -244,8 +244,8 @@ class PluginRTCAudioController {
 	}
 
 	private func firstAudioSenderCreated() {
-		guard !Self.useManualAudio else {
-			NSLog("PluginRTCAudioController#firstAudioSenderCreated() | skipped, useManualAudio is enabled")
+		guard !Self.cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#firstAudioSenderCreated() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 
@@ -272,8 +272,8 @@ class PluginRTCAudioController {
 	}
 
 	private func lastAudioSenderDestroyed() {
-		guard !Self.useManualAudio else {
-			NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | skipped, useManualAudio is enabled")
+		guard !Self.cedeAudioSessionToCallKit else {
+			NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | skipped, cedeAudioSessionToCallKit is enabled")
 			return
 		}
 

@@ -30,14 +30,14 @@
 		</config-file>
 
 		<preference name="MANUAL_INIT_AUDIO_DEVICE" default="TRUE"/>
-		<preference name="USE_MANUAL_AUDIO" default="TRUE"/>
+		<preference name="CEDE_AUDIO_SESSION_TO_CALLKIT" default="TRUE"/>
 
 		<config-file target="*-Info.plist" parent="ManualInitAudioDevice">
 			<string>$MANUAL_INIT_AUDIO_DEVICE</string>
 		</config-file>
 
-		<config-file target="*-Info.plist" parent="UseManualAudio">
-			<string>$USE_MANUAL_AUDIO</string>
+		<config-file target="*-Info.plist" parent="CedeAudioSessionToCallKit">
+			<string>$CEDE_AUDIO_SESSION_TO_CALLKIT</string>
 		</config-file>
 
 		<config-file target="*-Info.plist" parent="UseManualLayoutRenderer">
