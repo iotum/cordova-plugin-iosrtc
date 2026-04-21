@@ -238,6 +238,7 @@ class PluginRTCAudioController {
 
 		NSLog("PluginRTCAudioController#firstAudioSenderCreated() | activating audio session")
 		rtcAudioSession.audioSessionDidActivate(AVAudioSession.sharedInstance())
+		rtcAudioSession.isAudioEnabled = true
 	}
 
 	private func lastAudioSenderDestroyed() {
@@ -245,6 +246,7 @@ class PluginRTCAudioController {
 
 		NSLog("PluginRTCAudioController#lastAudioSenderDestroyed() | deactivating audio session")
 		rtcAudioSession.audioSessionDidDeactivate(AVAudioSession.sharedInstance())
+		rtcAudioSession.isAudioEnabled = false
 
 		rtcAudioSession.lockForConfiguration()
 
