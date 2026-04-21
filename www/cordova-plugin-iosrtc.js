@@ -1204,17 +1204,14 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 	set: function (value) {
 		debug('enabled = %s', !!value);
 
+		// Don't disable the track natively for Softphone, allow enabling to fix audio not enabled bug when unholding the app
 		if (this.kind === 'audio') {
 			var CordovaCall = window.cordova.plugins.CordovaCall;
 			if (CordovaCall && this._sessionId) {
-				if (this._enabled === !value) {
-					!value
-						? CordovaCall.mute(this._sessionId, () => (this._enabled = false))
-						: CordovaCall.unmute(this._sessionId, () => (this._enabled = true));
+				if (this._enabled === !value && !value) {
 					this._enabled = !!value;
+					return;
 				}
-				exec(null, null, 'iosrtcPlugin', 'MediaStreamTrack_setEnabled', [this.id, this._enabled]);
-				return;
 			}
 		}
 
