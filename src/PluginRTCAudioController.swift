@@ -13,7 +13,7 @@ import AVFoundation
 class PluginRTCAudioController {
 	static let instance = PluginRTCAudioController()
 	
-	// Have callkit manually manage the audio session, where iosrtc should not be messing with it at all
+	// Have CallKit manually manage the audio session, where iosrtc should not be messing with it at all
 	static private var useManualAudio: Bool = true
 
 	static private let inactiveAudioCategory: AVAudioSession.Category = .playback
