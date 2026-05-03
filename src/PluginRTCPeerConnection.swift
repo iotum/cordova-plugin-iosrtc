@@ -32,10 +32,6 @@ class PluginRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 
 	var isAudioInputSelected: Bool = false
 
-	// Counts audio tracks added via the Plan-B (non-Unified-Plan) path, which does not
-	// use PluginRTCRtpTransceiver and therefore needs its own audio-unit lifecycle tracking.
-	private var planBAudioCount: Int = 0
-
 	init(
 		queue: DispatchQueue,
 		rtcPeerConnectionFactory: RTCPeerConnectionFactory,
@@ -61,19 +57,8 @@ class PluginRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 
 	deinit {
 		NSLog("PluginRTCPeerConnection#deinit()")
-		drainPlanBAudioCount()
 		self.pluginRTCDTMFSenders = [:]
         self.pluginRTCRtpTransceivers = [:]
-	}
-
-	/// Notifies the audio controller that all remaining Plan-B audio tracks are gone.
-	/// Safe to call multiple times — resets the counter to zero after the first call.
-	private func drainPlanBAudioCount() {
-		let audioController = PluginRTCAudioController.instance
-		for _ in 0..<planBAudioCount {
-			audioController.audioSenderDestroyed()
-		}
-		planBAudioCount = 0
 	}
 
 	func run() {
@@ -360,13 +345,6 @@ class PluginRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 
 		} else {
 			self.rtcPeerConnection.add(pluginMediaStream.rtcMediaStream)
-
-			// Track Plan-B audio tracks so the audio unit can be activated/deactivated.
-			let audioController = PluginRTCAudioController.instance
-			for _ in pluginMediaStream.audioTracks {
-				planBAudioCount += 1
-				audioController.audioSenderCreated()
-			}
 		}
 
 		return true
@@ -398,17 +376,6 @@ class PluginRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 			}
 		} else {
 			self.rtcPeerConnection.remove(pluginMediaStream.rtcMediaStream)
-
-			// Decrement Plan-B audio count to mirror what was added in addStream.
-			let audioController = PluginRTCAudioController.instance
-			for _ in pluginMediaStream.audioTracks {
-				if planBAudioCount > 0 {
-					planBAudioCount -= 1
-					audioController.audioSenderDestroyed()
-				} else {
-					NSLog("PluginRTCPeerConnection#removeStream() | WARN: planBAudioCount underflow — removeStream called more times than addStream for this stream's audio tracks")
-				}
-			}
 		}
 	}
 
@@ -697,9 +664,6 @@ class PluginRTCPeerConnection : NSObject, RTCPeerConnectionDelegate {
 
 		self.pluginMediaTracks = [:];
 		self.pluginMediaStreams = [:];
-
-		// Clean up Plan-B audio tracks that were never explicitly removed.
-		drainPlanBAudioCount()
 
 		self.rtcPeerConnection.close()
 	}
