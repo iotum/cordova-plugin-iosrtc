@@ -152,7 +152,19 @@ class PluginGetUserMedia {
 				}
 			}
 
-			rtcAudioTrack = self.rtcPeerConnectionFactory.audioTrack(withTrackId: UUID().uuidString)
+			// Disable WebRTC software AEC/AGC/NS to prevent double-processing on top of the iOS
+			// hardware AEC that is active via AVAudioSessionModeVoiceChat/VideoChat (VPIO audio unit).
+			let noProcessingConstraints = RTCMediaConstraints(
+				mandatoryConstraints: nil,
+				optionalConstraints: [
+					"googEchoCancellation": "false",
+					"googNoiseSuppression": "false",
+					"googAutoGainControl": "false",
+					"googHighpassFilter": "false"
+				]
+			)
+			let audioSource = self.rtcPeerConnectionFactory.audioSource(with: noProcessingConstraints)
+			rtcAudioTrack = self.rtcPeerConnectionFactory.audioTrack(with: audioSource, trackId: UUID().uuidString)
 			rtcMediaStream.addAudioTrack(rtcAudioTrack!)
 
 			if (audioDeviceId != nil) {
