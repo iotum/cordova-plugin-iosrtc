@@ -32,6 +32,16 @@ class PluginRTCAudioController {
 			} catch {
 				NSLog("PluginRTCAudioController#setCedeAudioSessionToCallKit() | setActive ERROR \(error)")
 			}
+			NotificationCenter.default.addObserver(
+				instance,
+				selector: #selector(instance.audioRouteChangeListener(_:)),
+				name: AVAudioSession.routeChangeNotification,
+				object: nil)
+		} else {
+			NotificationCenter.default.removeObserver(
+				instance,
+				name: AVAudioSession.routeChangeNotification,
+				object: nil)
 		}
 	}
 
