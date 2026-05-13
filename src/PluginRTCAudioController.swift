@@ -16,6 +16,25 @@ class PluginRTCAudioController {
 	// Have CallKit manually manage the audio session, where iosrtc should not be messing with it at all
 	static private var cedeAudioSessionToCallKit: Bool = true
 
+	/// Allows JS to override the CallKit cede flag at runtime.
+	/// Pass `false` to have iosrtc manage the AVAudioSession itself
+	/// (useful as a fallback when CallKit fails to activate the session,
+	/// e.g. when microphone/camera permissions are denied).
+	static func setCedeAudioSessionToCallKit(_ cede: Bool) -> Void {
+		NSLog("PluginRTCAudioController#setCedeAudioSessionToCallKit() | cede: \(cede)")
+		cedeAudioSessionToCallKit = cede
+		RTCAudioSession.sharedInstance().useManualAudio = cede
+		if !cede {
+			// iosrtc now owns the session – apply category and activate.
+			setCategory()
+			do {
+				try AVAudioSession.sharedInstance().setActive(true)
+			} catch {
+				NSLog("PluginRTCAudioController#setCedeAudioSessionToCallKit() | setActive ERROR \(error)")
+			}
+		}
+	}
+
 	static private let inactiveAudioCategory: AVAudioSession.Category = .playback
 	static private let inactiveCategoryOptions: AVAudioSession.CategoryOptions = []
 

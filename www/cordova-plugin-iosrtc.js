@@ -3931,6 +3931,11 @@ module.exports = {
 	// Expose a function to initAudioDevices if needed, sets the audio session active
 	initAudioDevices: initAudioDevices,
 
+	// Override the CallKit audio session cede flag at runtime.
+	// Pass false to have iosrtc manage the AVAudioSession (fallback when
+	// CallKit fails to activate the session, e.g. on permission denial).
+	setCedeAudioSessionToCallKit: setCedeAudioSessionToCallKit,
+
 	// Expose a function to pollute window and naigator namespaces.
 	registerGlobals: registerGlobals,
 
@@ -4003,6 +4008,12 @@ function initAudioDevices() {
 	debug('initAudioDevices()');
 
 	exec(null, null, 'iosrtcPlugin', 'initAudioDevices', []);
+}
+
+function setCedeAudioSessionToCallKit(cede) {
+	debug('setCedeAudioSessionToCallKit() | [cede:%s]', cede);
+
+	exec(null, null, 'iosrtcPlugin', 'setCedeAudioSessionToCallKit', [!!cede]);
 }
 
 function callbackifyMethod(originalMethod) {
