@@ -1204,12 +1204,17 @@ Object.defineProperty(MediaStreamTrack.prototype, 'enabled', {
 	set: function (value) {
 		debug('enabled = %s', !!value);
 
-		// Don't disable the track natively for Softphone, allow enabling to fix audio not enabled bug when unholding the app
+		// Don't disable the track on mute/unmute
+		// Affects MST.canSendDTMF while muted, should be true
+		// TODO: Refactor this so we only filter during an ongoing softphone/video call
 		if (this.kind === 'audio') {
 			var CordovaCall = window.cordova.plugins.CordovaCall;
 			if (CordovaCall) {
-				this._enabled = !!value;
+				// Allow forcing a sync
+				// When held, remote native MST is disabled due to a=inactive without syncing with JS MST, allow facetalk to force MST._enabled = true
+				// TODO: Remove this hack, find out why the remote track is disabled and/or not synced
 				if (this._sync) {
+					this._enabled = !!value;
 					exec(null, null, 'iosrtcPlugin', 'MediaStreamTrack_setEnabled', [this.id, this._enabled]);
 					this._sync = false;
 				}
@@ -3931,6 +3936,11 @@ module.exports = {
 	// Expose a function to initAudioDevices if needed, sets the audio session active
 	initAudioDevices: initAudioDevices,
 
+	// Override the CallKit audio session cede flag at runtime.
+	// Pass false to have iosrtc manage the AVAudioSession (fallback when
+	// CallKit fails to activate the session, e.g. on permission denial).
+	setCedeAudioSessionToCallKit: setCedeAudioSessionToCallKit,
+
 	// Expose a function to pollute window and naigator namespaces.
 	registerGlobals: registerGlobals,
 
@@ -4003,6 +4013,12 @@ function initAudioDevices() {
 	debug('initAudioDevices()');
 
 	exec(null, null, 'iosrtcPlugin', 'initAudioDevices', []);
+}
+
+function setCedeAudioSessionToCallKit(cede) {
+	debug('setCedeAudioSessionToCallKit() | [cede:%s]', cede);
+
+	exec(null, null, 'iosrtcPlugin', 'setCedeAudioSessionToCallKit', [!!cede]);
 }
 
 function callbackifyMethod(originalMethod) {

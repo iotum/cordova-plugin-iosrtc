@@ -1374,6 +1374,12 @@ class iosrtcPlugin : CDVPlugin {
         PluginRTCAudioController.setDefaultAudioOutput(isSpeaker: isSpeaker)
 	}
 
+	@objc(setCedeAudioSessionToCallKit:) func setCedeAudioSessionToCallKit(_ command: CDVInvokedUrlCommand) {
+		NSLog("iosrtcPlugin#setCedeAudioSessionToCallKit()")
+		let cede: Bool = CBool(command.arguments[0] as! Bool)
+		PluginRTCAudioController.setCedeAudioSessionToCallKit(cede)
+	}
+
 	@objc(dump:) func dump(_ command: CDVInvokedUrlCommand) {
 		NSLog("iosrtcPlugin#dump()")
 
