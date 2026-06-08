@@ -1,5 +1,5 @@
 /*
- *  Copyright 2025 The WebRTC project authors. All Rights Reserved.
+ *  Copyright 2026 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -13,6 +13,7 @@
 #import <WebRTC/RTCI420Buffer.h>
 #import <WebRTC/RTCLogging.h>
 #import <WebRTC/RTCMacros.h>
+#import <WebRTC/RTCAudioRenderer.h>
 #import <WebRTC/RTCMutableI420Buffer.h>
 #import <WebRTC/RTCMutableYUVPlanarBuffer.h>
 #import <WebRTC/RTCSSLCertificateVerifier.h>

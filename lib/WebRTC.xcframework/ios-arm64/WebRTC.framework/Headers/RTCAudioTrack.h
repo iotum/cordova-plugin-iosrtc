@@ -8,6 +8,9 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#import <Foundation/Foundation.h>
+
+#import <WebRTC/RTCAudioRenderer.h>
 #import <WebRTC/RTCMacros.h>
 #import <WebRTC/RTCMediaStreamTrack.h>
 
@@ -21,7 +24,13 @@ RTC_OBJC_EXPORT
 - (instancetype)init NS_UNAVAILABLE;
 
 /** The audio source for this audio track. */
-@property(nonatomic, readonly) RTC_OBJC_TYPE(RTCAudioSource) * source;
+@property(nonatomic, readonly) RTC_OBJC_TYPE(RTCAudioSource) *source;
+
+/** Register a renderer that will receive decoded PCM frames on this track. */
+- (void)addRenderer:(id<RTC_OBJC_TYPE(RTCAudioRenderer)>)renderer;
+
+/** Deregister a previously registered renderer. */
+- (void)removeRenderer:(id<RTC_OBJC_TYPE(RTCAudioRenderer)>)renderer;
 
 @end
 
