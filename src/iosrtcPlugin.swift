@@ -20,6 +20,8 @@ class iosrtcPlugin : CDVPlugin {
 	var queue: DispatchQueue!
 	// Auto selecting output speaker
 	var audioOutputController: PluginRTCAudioController!
+	// Conference mix sessions.
+	var conferenceMixSessions: [String : ConferenceMixSession]!
 
 
 	// This is just called if <param name="onload" value="true" /> in plugin.xml.
@@ -33,6 +35,7 @@ class iosrtcPlugin : CDVPlugin {
 		pluginMediaStreams = [:]
 		pluginMediaStreamTracks = [:]
 		pluginMediaStreamRenderers = [:]
+		conferenceMixSessions = [:]
 		queue = DispatchQueue(label: "cordova-plugin-iosrtc", attributes: [])
 		pluginRTCPeerConnections = [:]
 
@@ -732,6 +735,8 @@ class iosrtcPlugin : CDVPlugin {
 		}
 
 		self.queue.async { [weak pluginRTCPeerConnection] in
+			self.stopConferenceSessionsForPeerConnection(pcId)
+
 			if pluginRTCPeerConnection != nil {
 				pluginRTCPeerConnection!.close()
 			}
@@ -1445,6 +1450,13 @@ class iosrtcPlugin : CDVPlugin {
 
 	fileprivate func deleteMediaStreamTrack(_ pluginMediaStreamTrack: PluginMediaStreamTrack) {
 		if (self.pluginMediaStreamTracks[pluginMediaStreamTrack.id] != nil) {
+			let deletedTrackId = pluginMediaStreamTrack.id
+			let deletedRtcTrackId = pluginMediaStreamTrack.rtcMediaStreamTrack.trackId
+			self.stopConferenceSessionsForTrack(deletedTrackId)
+			if deletedRtcTrackId != deletedTrackId {
+				self.stopConferenceSessionsForTrack(deletedRtcTrackId)
+			}
+
 			self.pluginMediaStreamTracks[pluginMediaStreamTrack.id] = nil
 
 			// deinit should call stop by itself
@@ -1453,6 +1465,11 @@ class iosrtcPlugin : CDVPlugin {
 	}
 
 	fileprivate func cleanup() {
+		// Stop all conference sessions before tearing down peer/media objects.
+		for (_, session) in self.conferenceMixSessions {
+			session.stop()
+		}
+		self.conferenceMixSessions.removeAll()
 
 		// Close all RTCPeerConnections
 		for (pcId, pluginRTCPeerConnection) in self.pluginRTCPeerConnections {
@@ -1486,6 +1503,335 @@ class iosrtcPlugin : CDVPlugin {
 		for (trackId, pluginMediaStreamTrack) in self.pluginMediaStreamTracks {
 			deleteMediaStreamTrack(pluginMediaStreamTrack);
 		}
+	}
+
+	private func emitConferenceError(_ command: CDVInvokedUrlCommand, conferenceId: String?, code: String, message: String) {
+		var payload: [String: Any] = [
+			"code": code,
+			"message": message
+		]
+		if conferenceId != nil {
+			payload["conferenceId"] = conferenceId!
+		}
+
+		self.emit(command.callbackId,
+			result: CDVPluginResult(
+				status: CDVCommandStatus_ERROR,
+				messageAs: payload
+			)
+		)
+	}
+
+	private func resolveAudioTrack(_ id: String) -> PluginMediaStreamTrack? {
+		if let track = self.pluginMediaStreamTracks[id] {
+			return track
+		}
+
+		for (_, track) in self.pluginMediaStreamTracks {
+			if track.rtcMediaStreamTrack.trackId == id {
+				return track
+			}
+		}
+
+		return nil
+	}
+
+	private func resolveConferenceLeg(remoteTrackId: String) -> (pcId: Int, senderId: Int, remoteTrack: PluginMediaStreamTrack, remoteAudioTrack: RTCAudioTrack, sender: PluginRTCRtpSender)? {
+		guard let remoteTrack = self.resolveAudioTrack(remoteTrackId) else {
+			return nil
+		}
+
+		guard let remoteAudioTrack = remoteTrack.rtcMediaStreamTrack as? RTCAudioTrack else {
+			return nil
+		}
+
+		for (pcId, pluginRTCPeerConnection) in self.pluginRTCPeerConnections {
+			let hasTrackInPc = pluginRTCPeerConnection.pluginMediaTracks[remoteTrack.id] != nil ||
+				pluginRTCPeerConnection.pluginMediaTracks.contains(where: { _, value in
+					value.rtcMediaStreamTrack.trackId == remoteTrack.rtcMediaStreamTrack.trackId
+				})
+
+			if !hasTrackInPc {
+				continue
+			}
+
+			let audioSenderEntry = pluginRTCPeerConnection.pluginRTCRtpSenders.first(where: { _, sender in
+				return sender.rtpSender.track?.kind == "audio"
+			})
+
+			if let (senderId, sender) = audioSenderEntry {
+				return (pcId: pcId, senderId: senderId, remoteTrack: remoteTrack, remoteAudioTrack: remoteAudioTrack, sender: sender)
+			}
+		}
+
+		return nil
+	}
+
+	private func stopConferenceSessionsForPeerConnection(_ pcId: Int) {
+		let conferenceIds = self.conferenceMixSessions.values
+			.filter { $0.pcIdA == pcId || $0.pcIdB == pcId }
+			.map { $0.conferenceId }
+
+		for conferenceId in conferenceIds {
+			if let session = self.conferenceMixSessions[conferenceId] {
+				session.stop()
+				self.conferenceMixSessions.removeValue(forKey: conferenceId)
+			}
+		}
+	}
+
+	private func stopConferenceSessionsForTrack(_ trackId: String) {
+		let conferenceIds = self.conferenceMixSessions.values
+			.filter {
+				$0.remoteTrackIdA == trackId ||
+				$0.remoteTrackIdB == trackId ||
+				$0.micTrackId == trackId ||
+				$0.originalTrackIdForA == trackId ||
+				$0.originalTrackIdForB == trackId ||
+				$0.mixedTrackIdForA == trackId ||
+				$0.mixedTrackIdForB == trackId
+			}
+			.map { $0.conferenceId }
+
+		for conferenceId in conferenceIds {
+			if let session = self.conferenceMixSessions[conferenceId] {
+				session.stop()
+				self.conferenceMixSessions.removeValue(forKey: conferenceId)
+			}
+		}
+	}
+
+	@objc(startConferenceMix:) func startConferenceMix(_ command: CDVInvokedUrlCommand) {
+		guard let options = command.argument(at: 0) as? NSDictionary else {
+			emitConferenceError(command, conferenceId: nil, code: "invalid_arguments", message: "options is required")
+			return
+		}
+
+		guard let conferenceId = options["conferenceId"] as? String,
+			let remoteTrackIdA = options["remoteTrackIdA"] as? String,
+			let remoteTrackIdB = options["remoteTrackIdB"] as? String,
+			let micTrackId = options["micTrackId"] as? String else {
+			emitConferenceError(command, conferenceId: nil, code: "invalid_arguments", message: "conferenceId, remoteTrackIdA, remoteTrackIdB and micTrackId are required")
+			return
+		}
+
+		if let existing = self.conferenceMixSessions[conferenceId] {
+			self.emit(command.callbackId,
+				result: CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: existing.getStartPayload()
+				)
+			)
+			return
+		}
+
+		guard let micTrack = self.resolveAudioTrack(micTrackId) else {
+			emitConferenceError(command, conferenceId: conferenceId, code: "track_not_found", message: "mic track not found")
+			return
+		}
+
+		if micTrack.kind != "audio" {
+			emitConferenceError(command, conferenceId: conferenceId, code: "invalid_arguments", message: "micTrackId must reference an audio track")
+			return
+		}
+
+		guard let legA = self.resolveConferenceLeg(remoteTrackId: remoteTrackIdA) else {
+			emitConferenceError(command, conferenceId: conferenceId, code: "track_not_found", message: "unable to resolve leg A")
+			return
+		}
+
+		guard let legB = self.resolveConferenceLeg(remoteTrackId: remoteTrackIdB) else {
+			emitConferenceError(command, conferenceId: conferenceId, code: "track_not_found", message: "unable to resolve leg B")
+			return
+		}
+
+		if legA.senderId == legB.senderId && legA.pcId == legB.pcId {
+			emitConferenceError(command, conferenceId: conferenceId, code: "invalid_arguments", message: "leg A and leg B resolved to the same sender")
+			return
+		}
+
+		let gainsInput = options["gains"] as? NSDictionary
+		let gains: [String: Double] = [
+			"mic": gainsInput?["mic"] as? Double ?? 1.0,
+			"remoteA": gainsInput?["remoteA"] as? Double ?? 1.0,
+			"remoteB": gainsInput?["remoteB"] as? Double ?? 1.0
+		]
+
+		let limiterInput = options["limiter"] as? NSDictionary
+		let limiterEnabled = limiterInput?["enabled"] as? Bool ?? true
+		let limiterThresholdDb = limiterInput?["thresholdDb"] as? Double ?? -3.0
+
+		let originalTrackIdForA = legA.sender.rtpSender.track?.trackId ?? micTrack.rtcMediaStreamTrack.trackId
+		let originalTrackIdForB = legB.sender.rtpSender.track?.trackId ?? micTrack.rtcMediaStreamTrack.trackId
+
+		let session = ConferenceMixSession(
+			conferenceId: conferenceId,
+			remoteTrackIdA: remoteTrackIdA,
+			remoteTrackIdB: remoteTrackIdB,
+			micTrackId: micTrackId,
+			pcIdA: legA.pcId,
+			pcIdB: legB.pcId,
+			senderIdA: legA.senderId,
+			senderIdB: legB.senderId,
+			originalTrackIdForA: originalTrackIdForA,
+			originalTrackIdForB: originalTrackIdForB,
+			remoteAudioTrackA: legA.remoteAudioTrack,
+			remoteAudioTrackB: legB.remoteAudioTrack,
+			gains: gains,
+			limiterEnabled: limiterEnabled,
+			limiterThresholdDb: limiterThresholdDb
+		)
+
+		self.queue.async {
+			session.start()
+			self.conferenceMixSessions[conferenceId] = session
+
+			self.emit(command.callbackId,
+				result: CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: session.getStartPayload()
+				)
+			)
+		}
+	}
+
+	@objc(updateConferenceMix:) func updateConferenceMix(_ command: CDVInvokedUrlCommand) {
+		guard let conferenceId = command.argument(at: 0) as? String,
+			let patch = command.argument(at: 1) as? NSDictionary else {
+			emitConferenceError(command, conferenceId: nil, code: "invalid_arguments", message: "conferenceId and patch are required")
+			return
+		}
+
+		guard let session = self.conferenceMixSessions[conferenceId] else {
+			emitConferenceError(command, conferenceId: conferenceId, code: "track_not_found", message: "conference session not found")
+			return
+		}
+
+		let gainsInput = patch["gains"] as? NSDictionary
+		let muteInput = patch["mute"] as? NSDictionary
+		let limiterInput = patch["limiter"] as? NSDictionary
+
+		var gainsPatch: [String: Double]? = nil
+		if gainsInput != nil {
+			gainsPatch = [:]
+			if let mic = gainsInput!["mic"] as? Double { gainsPatch!["mic"] = mic }
+			if let remoteA = gainsInput!["remoteA"] as? Double { gainsPatch!["remoteA"] = remoteA }
+			if let remoteB = gainsInput!["remoteB"] as? Double { gainsPatch!["remoteB"] = remoteB }
+		}
+
+		var mutePatch: [String: Bool]? = nil
+		if muteInput != nil {
+			mutePatch = [:]
+			if let mic = muteInput!["mic"] as? Bool { mutePatch!["mic"] = mic }
+			if let remoteA = muteInput!["remoteA"] as? Bool { mutePatch!["remoteA"] = remoteA }
+			if let remoteB = muteInput!["remoteB"] as? Bool { mutePatch!["remoteB"] = remoteB }
+		}
+
+		var limiterPatch: [String: Any]? = nil
+		if limiterInput != nil {
+			limiterPatch = [:]
+			if let enabled = limiterInput!["enabled"] as? Bool { limiterPatch!["enabled"] = enabled }
+			if let thresholdDb = limiterInput!["thresholdDb"] as? Double { limiterPatch!["thresholdDb"] = thresholdDb }
+		}
+
+		self.queue.async {
+			session.update(gainsPatch: gainsPatch, mutePatch: mutePatch, limiterPatch: limiterPatch)
+			self.emit(command.callbackId,
+				result: CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: [
+						"conferenceId": conferenceId,
+						"updated": true
+					]
+				)
+			)
+		}
+	}
+
+	@objc(stopConferenceMix:) func stopConferenceMix(_ command: CDVInvokedUrlCommand) {
+		guard let conferenceId = command.argument(at: 0) as? String else {
+			emitConferenceError(command, conferenceId: nil, code: "invalid_arguments", message: "conferenceId is required")
+			return
+		}
+
+		guard let session = self.conferenceMixSessions[conferenceId] else {
+			self.emit(command.callbackId,
+				result: CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: [
+						"conferenceId": conferenceId,
+						"engineMode": ConferenceMixSession.engineMode,
+						"restored": false,
+						"code": "already_stopped"
+					]
+				)
+			)
+			return
+		}
+
+		self.queue.async {
+			session.stop()
+			self.conferenceMixSessions.removeValue(forKey: conferenceId)
+			self.emit(command.callbackId,
+				result: CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: [
+						"conferenceId": conferenceId,
+						"engineMode": ConferenceMixSession.engineMode,
+						"restored": true,
+						"restoredTrackIdForA": session.originalTrackIdForA,
+						"restoredTrackIdForB": session.originalTrackIdForB
+					]
+				)
+			)
+		}
+	}
+
+	@objc(getConferenceMixState:) func getConferenceMixState(_ command: CDVInvokedUrlCommand) {
+		guard let conferenceId = command.argument(at: 0) as? String else {
+			emitConferenceError(command, conferenceId: nil, code: "invalid_arguments", message: "conferenceId is required")
+			return
+		}
+
+		guard let session = self.conferenceMixSessions[conferenceId] else {
+			self.emit(command.callbackId,
+				result: CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: [
+						"conferenceId": conferenceId,
+						"engineMode": ConferenceMixSession.engineMode,
+						"active": false
+					]
+				)
+			)
+			return
+		}
+
+		self.emit(command.callbackId,
+			result: CDVPluginResult(
+				status: CDVCommandStatus_OK,
+				messageAs: session.getStatePayload()
+			)
+		)
+	}
+
+	@objc(getConferenceMixStats:) func getConferenceMixStats(_ command: CDVInvokedUrlCommand) {
+		guard let conferenceId = command.argument(at: 0) as? String else {
+			emitConferenceError(command, conferenceId: nil, code: "invalid_arguments", message: "conferenceId is required")
+			return
+		}
+
+		guard let session = self.conferenceMixSessions[conferenceId] else {
+			emitConferenceError(command, conferenceId: conferenceId, code: "track_not_found", message: "conference session not found")
+			return
+		}
+
+		self.emit(command.callbackId,
+			result: CDVPluginResult(
+				status: CDVCommandStatus_OK,
+				messageAs: session.getStatsPayload()
+			)
+		)
 	}
 
 	@objc(RTCPeerConnection_RTCRtpSender_setParameters:) func RTCPeerConnection_RTCRtpSender_setParameters(_ command: CDVInvokedUrlCommand) {

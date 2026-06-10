@@ -87,6 +87,8 @@
 		<source-file src="src/PluginRTCRtpParameters.swift" />
 		<source-file src="src/PluginRTCRtpCodecParameters.swift" />
 		<source-file src="src/PluginRTCRtpEncodingParameters.swift" />
+		<source-file src="src/ConferenceAudioRenderer.swift" />
+		<source-file src="src/ConferenceMixSession.swift" />
 
 		<!-- iOS shared dependencies -->
 		<framework src="AVFoundation.framework" />

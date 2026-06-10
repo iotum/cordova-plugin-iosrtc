@@ -70,6 +70,13 @@ module.exports = {
 	// CallKit fails to activate the session, e.g. on permission denial).
 	setCedeAudioSessionToCallKit: setCedeAudioSessionToCallKit,
 
+	// Native conference mix control.
+	startConferenceMix: startConferenceMix,
+	updateConferenceMix: updateConferenceMix,
+	stopConferenceMix: stopConferenceMix,
+	getConferenceMixState: getConferenceMixState,
+	getConferenceMixStats: getConferenceMixStats,
+
 	// Expose a function to pollute window and naigator namespaces.
 	registerGlobals: registerGlobals,
 
@@ -148,6 +155,66 @@ function setCedeAudioSessionToCallKit(cede) {
 	debug('setCedeAudioSessionToCallKit() | [cede:%s]', cede);
 
 	exec(null, null, 'iosrtcPlugin', 'setCedeAudioSessionToCallKit', [!!cede]);
+}
+
+function startConferenceMix(options) {
+	debug('startConferenceMix() | [options:%o]', options);
+
+	if (!options || typeof options !== 'object') {
+		return Promise.reject(new Error('options is required'));
+	}
+
+	return new Promise(function (resolve, reject) {
+		exec(resolve, reject, 'iosrtcPlugin', 'startConferenceMix', [options]);
+	});
+}
+
+function updateConferenceMix(conferenceId, patch) {
+	debug('updateConferenceMix() | [conferenceId:%s, patch:%o]', conferenceId, patch);
+
+	if (!conferenceId) {
+		return Promise.reject(new Error('conferenceId is required'));
+	}
+
+	return new Promise(function (resolve, reject) {
+		exec(resolve, reject, 'iosrtcPlugin', 'updateConferenceMix', [conferenceId, patch || {}]);
+	});
+}
+
+function stopConferenceMix(conferenceId) {
+	debug('stopConferenceMix() | [conferenceId:%s]', conferenceId);
+
+	if (!conferenceId) {
+		return Promise.reject(new Error('conferenceId is required'));
+	}
+
+	return new Promise(function (resolve, reject) {
+		exec(resolve, reject, 'iosrtcPlugin', 'stopConferenceMix', [conferenceId]);
+	});
+}
+
+function getConferenceMixState(conferenceId) {
+	debug('getConferenceMixState() | [conferenceId:%s]', conferenceId);
+
+	if (!conferenceId) {
+		return Promise.reject(new Error('conferenceId is required'));
+	}
+
+	return new Promise(function (resolve, reject) {
+		exec(resolve, reject, 'iosrtcPlugin', 'getConferenceMixState', [conferenceId]);
+	});
+}
+
+function getConferenceMixStats(conferenceId) {
+	debug('getConferenceMixStats() | [conferenceId:%s]', conferenceId);
+
+	if (!conferenceId) {
+		return Promise.reject(new Error('conferenceId is required'));
+	}
+
+	return new Promise(function (resolve, reject) {
+		exec(resolve, reject, 'iosrtcPlugin', 'getConferenceMixStats', [conferenceId]);
+	});
 }
 
 function callbackifyMethod(originalMethod) {
