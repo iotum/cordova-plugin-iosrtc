@@ -49,8 +49,9 @@ RTCDTMFSender.prototype.constructor = RTCDTMFSender;
 
 Object.defineProperty(RTCDTMFSender.prototype, 'canInsertDTMF', {
 	get: function () {
-		// TODO: check if it's muted or stopped?
-		return this._track && this._track.kind === 'audio' && this._track.enabled;
+		return !!this._track &&
+			this._track.kind === 'audio' &&
+			this._track.readyState === 'live';
 	}
 });
 
