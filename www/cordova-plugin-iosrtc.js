@@ -1,5 +1,5 @@
 /*
- * cordova-plugin-iosrtc v11.3.0
+ * cordova-plugin-iosrtc v12.4.0
  * Cordova iOS plugin exposing the full WebRTC W3C JavaScript APIs
  * Copyright 2015-2017 eFace2Face, Inc. (https://eface2face.com)
  * Copyright 2015-2019 BasqueVoIPMafia (https://github.com/BasqueVoIPMafia)
@@ -886,11 +886,13 @@ MediaStreamRenderer.prototype.refresh = function () {
 	this.element.style.backgroundColor = 'rgba(' + backgroundColorRgba.join(',') + ')';
 	backgroundColorRgba.length = 3;
 
-	// get padding values
-	paddingTop = parseInt(computedStyle.paddingTop) | 0;
-	paddingBottom = parseInt(computedStyle.paddingBottom) | 0;
-	paddingLeft = parseInt(computedStyle.paddingLeft) | 0;
-	paddingRight = parseInt(computedStyle.paddingRight) | 0;
+	// get padding values, scaled to the same (possibly CSS-transformed) space as
+	// elementWidth/elementHeight so they stay consistent when a transform (e.g. scale)
+	// is applied to the element or one of its ancestors.
+	paddingTop = (parseInt(computedStyle.paddingTop) | 0) * elementPositionAndSize.scaleY;
+	paddingBottom = (parseInt(computedStyle.paddingBottom) | 0) * elementPositionAndSize.scaleY;
+	paddingLeft = (parseInt(computedStyle.paddingLeft) | 0) * elementPositionAndSize.scaleX;
+	paddingRight = (parseInt(computedStyle.paddingRight) | 0) * elementPositionAndSize.scaleX;
 
 	// fix position according to padding
 	elementLeft += paddingLeft;
@@ -937,7 +939,7 @@ MediaStreamRenderer.prototype.refresh = function () {
 	}
 
 	// borderRadius
-	borderRadius = parseFloat(computedStyle.borderRadius);
+	borderRadius = parseFloat(computedStyle.borderRadius) * Math.min(elementPositionAndSize.scaleX, elementPositionAndSize.scaleY);
 	if (/%$/.test(borderRadius)) {
 		borderRadius = Math.min(elementHeight, elementWidth) * borderRadius;
 	}
@@ -1114,13 +1116,23 @@ function onEvent(data) {
 }
 
 function getElementPositionAndSize() {
-	var rect = this.element.getBoundingClientRect();
+	var rect = this.element.getBoundingClientRect(),
+		// getBoundingClientRect() already reflects any CSS transform (e.g. scale)
+		// applied to the element or one of its ancestors, but clientWidth/clientHeight,
+		// clientLeft/clientTop and computed border/padding values do not. Compute the
+		// effective scale so position/size stay consistent with the rendered (transformed) box.
+		// NOTE: only scale/translate transforms are supported this way; a rotation would
+		// make getBoundingClientRect() return an enclosing (non-rotated) box.
+		scaleX = this.element.offsetWidth ? rect.width / this.element.offsetWidth : 1,
+		scaleY = this.element.offsetHeight ? rect.height / this.element.offsetHeight : 1;
 
 	return {
-		left: rect.left + this.element.clientLeft,
-		top: rect.top + this.element.clientTop,
-		width: this.element.clientWidth,
-		height: this.element.clientHeight
+		left: rect.left + this.element.clientLeft * scaleX,
+		top: rect.top + this.element.clientTop * scaleY,
+		width: this.element.clientWidth * scaleX,
+		height: this.element.clientHeight * scaleY,
+		scaleX: scaleX,
+		scaleY: scaleY
 	};
 }
 
