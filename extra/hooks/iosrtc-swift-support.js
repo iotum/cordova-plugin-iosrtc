@@ -8,6 +8,8 @@
 var fs = require('fs'),
 	path = require('path'),
 	xcode = require('xcode'),
+	EventEmitter = require('node:events'),
+	cordova_ios = require('cordova-ios'),
 	xmlEntities = new (require('html-entities').XmlEntities)(),
 	DISABLE_IOSRTC_HOOK = process.env.DISABLE_IOSRTC_HOOK ? true : false,
 	IPHONEOS_DEPLOYMENT_TARGET = process.env.IPHONEOS_DEPLOYMENT_TARGET || '10.2',
@@ -136,13 +138,13 @@ module.exports = function (context) {
 	}
 
 	var projectRoot = context.opts.projectRoot,
-		projectName = getProjectName(projectRoot),
 		platformPath = path.join(projectRoot, 'platforms', 'ios'),
-		platformProjectPath = path.join(platformPath, projectName),
+		eventEmitter = new EventEmitter(),
+		iosProject = new cordova_ios('ios', platformPath, eventEmitter),
+		platformProjectPath = iosProject.locations.xcodeCordovaProj,
 		xcconfigPath = path.join(platformPath, '/cordova/build.xcconfig'),
-		xcodeProjectName = projectName + '.xcodeproj',
-		xcodeProjectConfigPath = path.join(platformPath, xcodeProjectName, 'project.pbxproj'),
-		swiftBridgingHeaderPath = projectName + BRIDGING_HEADER_END,
+		xcodeProjectConfigPath = iosProject.locations.pbxproj,
+		swiftBridgingHeaderPath = 'App' + BRIDGING_HEADER_END,
 		swiftBridgingHeaderPathXcode = '"' + swiftBridgingHeaderPath + '"',
 		swiftOptions = [''], // <-- begin to file appending AFTER initial newline
 		xcodeProject;
