@@ -8,6 +8,8 @@
 var fs = require('fs'),
 	path = require('path'),
 	xcode = require('xcode'),
+	EventEmitter = require('node:events'),
+	cordova_ios = require('cordova-ios'),
 	xmlEntities = new (require('html-entities').XmlEntities)(),
 	DISABLE_IOSRTC_HOOK = process.env.DISABLE_IOSRTC_HOOK ? true : false,
 	IPHONEOS_DEPLOYMENT_TARGET = process.env.IPHONEOS_DEPLOYMENT_TARGET || '10.2',
@@ -136,13 +138,13 @@ module.exports = function (context) {
 	}
 
 	var projectRoot = context.opts.projectRoot,
-		projectName = getProjectName(projectRoot),
 		platformPath = path.join(projectRoot, 'platforms', 'ios'),
-		platformProjectPath = path.join(platformPath, projectName),
+		eventEmitter = new EventEmitter(),
+		iosProject = new cordova_ios('ios', platformPath, eventEmitter),
+		platformProjectPath = iosProject.locations.xcodeCordovaProj,
 		xcconfigPath = path.join(platformPath, '/cordova/build.xcconfig'),
-		xcodeProjectName = projectName + '.xcodeproj',
-		xcodeProjectConfigPath = path.join(platformPath, xcodeProjectName, 'project.pbxproj'),
-		swiftBridgingHeaderPath = projectName + BRIDGING_HEADER_END,
+		xcodeProjectConfigPath = iosProject.locations.pbxproj,
+		swiftBridgingHeaderPath = 'App' + BRIDGING_HEADER_END,
 		swiftBridgingHeaderPathXcode = '"' + swiftBridgingHeaderPath + '"',
 		swiftOptions = [''], // <-- begin to file appending AFTER initial newline
 		xcodeProject;
@@ -151,7 +153,7 @@ module.exports = function (context) {
 	debug('cordova-plugin-iosrtc hook is checking issues in the generated project files:');
 	debug(
 		'- Minimum "iOS Deployment Target" and "Deployment Target" to: ' +
-			IPHONEOS_DEPLOYMENT_TARGET_XCODE
+		IPHONEOS_DEPLOYMENT_TARGET_XCODE
 	);
 	debug('- "Runpath Search Paths" to: ' + RUNPATH_SEARCH_PATHS_XCODE);
 	if (TEST_UNIFIED_BRIDGING_HEADER) {
@@ -172,7 +174,7 @@ module.exports = function (context) {
 	}
 	debug(
 		'".pbxproj" project file found: ' +
-			getRelativeToProjectRootPath(xcodeProjectConfigPath, projectRoot)
+		getRelativeToProjectRootPath(xcodeProjectConfigPath, projectRoot)
 	);
 
 	if (!fs.existsSync(xcconfigPath)) {
@@ -275,7 +277,7 @@ module.exports = function (context) {
 		if (error) {
 			debugError(
 				'an error occurred during the parsing of the project file: ' +
-					xcodeProjectConfigPath
+				xcodeProjectConfigPath
 			);
 
 			return;
@@ -357,10 +359,10 @@ module.exports = function (context) {
 
 						debug(
 							'checking file: ' +
-								getRelativeToProjectRootPath(
-									existingSwiftBridgingHeaderPath,
-									projectRoot
-								)
+							getRelativeToProjectRootPath(
+								existingSwiftBridgingHeaderPath,
+								projectRoot
+							)
 						);
 
 						var existingSwiftBridgingHeaderFileLines = [];
@@ -380,10 +382,10 @@ module.exports = function (context) {
 						if (!hasSwiftBridgingHeaderPathXcode) {
 							debug(
 								'updating existing swift bridging header file: ' +
-									getRelativeToProjectRootPath(
-										existingSwiftBridgingHeaderPath,
-										projectRoot
-									)
+								getRelativeToProjectRootPath(
+									existingSwiftBridgingHeaderPath,
+									projectRoot
+								)
 							);
 							existingSwiftBridgingHeaderFileLines.push(swiftBridgingHeaderImport);
 							fs.writeFileSync(
@@ -393,18 +395,18 @@ module.exports = function (context) {
 							);
 							debug(
 								'file correctly fixed: ' +
-									getRelativeToProjectRootPath(
-										existingSwiftBridgingHeaderPath,
-										projectRoot
-									)
+								getRelativeToProjectRootPath(
+									existingSwiftBridgingHeaderPath,
+									projectRoot
+								)
 							);
 						} else {
 							debug(
 								'file is correct: ' +
-									getRelativeToProjectRootPath(
-										existingSwiftBridgingHeaderPath,
-										projectRoot
-									)
+								getRelativeToProjectRootPath(
+									existingSwiftBridgingHeaderPath,
+									projectRoot
+								)
 							);
 						}
 
@@ -422,12 +424,12 @@ module.exports = function (context) {
 			fs.writeFileSync(xcodeProjectConfigPath, xcodeProject.writeSync(), 'utf-8');
 			debug(
 				'file correctly fixed: ' +
-					getRelativeToProjectRootPath(xcodeProjectConfigPath, projectRoot)
+				getRelativeToProjectRootPath(xcodeProjectConfigPath, projectRoot)
 			);
 		} else {
 			debug(
 				'file is correct: ' +
-					getRelativeToProjectRootPath(xcodeProjectConfigPath, projectRoot)
+				getRelativeToProjectRootPath(xcodeProjectConfigPath, projectRoot)
 			);
 		}
 	});
