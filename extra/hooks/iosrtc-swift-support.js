@@ -144,7 +144,7 @@ module.exports = function (context) {
 		platformProjectPath = iosProject.locations.xcodeCordovaProj,
 		xcconfigPath = path.join(platformPath, '/cordova/build.xcconfig'),
 		xcodeProjectConfigPath = iosProject.locations.pbxproj,
-		swiftBridgingHeaderPath = 'App' + BRIDGING_HEADER_END,
+		swiftBridgingHeaderPath = path.basename(platformProjectPath) + BRIDGING_HEADER_END,
 		swiftBridgingHeaderPathXcode = '"' + swiftBridgingHeaderPath + '"',
 		swiftOptions = [''], // <-- begin to file appending AFTER initial newline
 		xcodeProject;

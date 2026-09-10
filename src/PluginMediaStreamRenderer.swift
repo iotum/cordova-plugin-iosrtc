@@ -1,5 +1,7 @@
 import Foundation
+import UIKit
 import AVFoundation
+import WebRTC
 
 class PluginMediaStreamRenderer : NSObject, RTCVideoViewDelegate {
 

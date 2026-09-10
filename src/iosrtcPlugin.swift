@@ -1,5 +1,7 @@
 import Foundation
+import UIKit
 import AVFoundation
+import WebRTC
 
 
 @objc(iosrtcPlugin) // This class must be accesible from Objective-C.
