@@ -1,5 +1,7 @@
 import Foundation
+import UIKit
 import AVFoundation
+import WebRTC
 
 
 @objc(iosrtcPlugin) // This class must be accesible from Objective-C.
@@ -106,13 +108,13 @@ class iosrtcPlugin : CDVPlugin {
 			pcConstraints: pcConstraints,
 			eventListener: { (data: NSDictionary) -> Void in
 				let result = CDVPluginResult(
-					status: CDVCommandStatus_OK,
-					messageAs: data as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+					messageAs: data as? [AnyHashable: Any] ?? [:]
 				)
 
 				// Allow more callbacks.
-				result?.setKeepCallbackAs(true);
-				self.emit(command.callbackId, result: result!)
+				result.setKeepCallbackAs(true);
+				self.emit(command.callbackId, result: result)
 			},
 			eventListenerForAddStream: self.saveMediaStream,
 			eventListenerForRemoveStream: self.deleteMediaStream,
@@ -153,14 +155,14 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				},
 				errback: { (error: Error) -> Void in
 					self.emit(command.callbackId,
-						result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+						result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error.localizedDescription)
 					)
 				}
 			)
@@ -189,14 +191,14 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				},
 				errback: { (error: Error) -> Void in
 					self.emit(command.callbackId,
-						result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+						result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error.localizedDescription)
 					)
 				}
 			)
@@ -220,14 +222,14 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				},
 				errback: { (error: Error) -> Void in
 					self.emit(command.callbackId,
-						result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+						result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error.localizedDescription)
 					)
 				}
 			)
@@ -251,14 +253,14 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				},
 				errback: { (error: Error) -> Void in
 					self.emit(command.callbackId,
-						result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+						result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error.localizedDescription)
 					)
 				}
 			)
@@ -287,14 +289,14 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				},
 				errback: { () -> Void in
 					self.emit(command.callbackId,
-						result: CDVPluginResult(status: CDVCommandStatus_ERROR)
+						result: CDVPluginResult(status: CDVCommandStatus.error)
 					)
 				}
 			)
@@ -387,8 +389,8 @@ class iosrtcPlugin : CDVPlugin {
 			let pluginRTCRtpSender = pluginRTCPeerConnection?.addTrack(pluginMediaStreamTrack!, pluginRTCRtpTransceiverId, pluginRTCRtpReceiverId, pluginRTCRtpSenderId, streamIds)
 			self.emit(command.callbackId,
 				result: CDVPluginResult(
-					status: CDVCommandStatus_OK,
-					messageAs: pluginRTCRtpSender?.getJSON() as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+					messageAs: pluginRTCRtpSender?.getJSON() as? [AnyHashable: Any] ?? [:]
 				)
 			)
 		}
@@ -458,12 +460,12 @@ class iosrtcPlugin : CDVPlugin {
 		self.queue.async { [weak pluginRTCPeerConnection, weak pluginMediaStreamTrack] in
             let callback = { (data: NSDictionary) -> Void in
                 let result = CDVPluginResult(
-                    status: CDVCommandStatus_OK,
-                    messageAs: data as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+										messageAs: data as? [AnyHashable: Any] ?? [:]
                 )
 
-                result!.setKeepCallbackAs(true);
-                self.emit(command.callbackId, result: result!)
+				result.setKeepCallbackAs(true);
+				self.emit(command.callbackId, result: result)
             }
 
 			pluginRTCPeerConnection!.addTransceiver(
@@ -503,12 +505,12 @@ class iosrtcPlugin : CDVPlugin {
 		self.queue.async { [weak pluginRTCPeerConnection, weak pluginRTCRtpTransceiver] in
             let callback = { (data: NSDictionary) -> Void in
                 let result = CDVPluginResult(
-                    status: CDVCommandStatus_OK,
-                    messageAs: data as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+										messageAs: data as? [AnyHashable: Any] ?? [:]
                 )
 
-                result!.setKeepCallbackAs(true);
-                self.emit(command.callbackId, result: result!)
+				result.setKeepCallbackAs(true);
+				self.emit(command.callbackId, result: result)
             }
 
 			pluginRTCRtpTransceiver!.setDirection(direction: direction)
@@ -543,12 +545,12 @@ class iosrtcPlugin : CDVPlugin {
 
             let callback = { (data: NSDictionary) -> Void in
                 let result = CDVPluginResult(
-                    status: CDVCommandStatus_OK,
-                    messageAs: data as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+										messageAs: data as? [AnyHashable: Any] ?? [:]
                 )
 
-                result!.setKeepCallbackAs(true);
-                self.emit(command.callbackId, result: result!)
+				result.setKeepCallbackAs(true);
+				self.emit(command.callbackId, result: result)
             }
 
 			pluginRTCRtpTransceiver!.stop()
@@ -585,12 +587,12 @@ class iosrtcPlugin : CDVPlugin {
 		self.queue.async { [weak pluginRTCPeerConnection, weak pluginRTCRtpTransceiver] in
 			let callback = { (data: NSDictionary) -> Void in
 				let result = CDVPluginResult(
-					status: CDVCommandStatus_OK,
-					messageAs: data as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+					messageAs: data as? [AnyHashable: Any] ?? [:]
 				)
 
-				result!.setKeepCallbackAs(true)
-				self.emit(command.callbackId, result: result!)
+				result.setKeepCallbackAs(true)
+				self.emit(command.callbackId, result: result)
 			}
 
 			pluginRTCRtpTransceiver!.setCodecPreferences(codecs, factory: pluginRTCPeerConnection!.rtcPeerConnectionFactory)
@@ -612,8 +614,8 @@ class iosrtcPlugin : CDVPlugin {
 			let capabilities = self.rtcPeerConnectionFactory.rtpSenderCapabilities(forKind: kind)
 			let codecsJSON = capabilities.codecs.map { PluginRTCRtpTransceiver.codecCapabilityToJSON($0) }
 			let response: NSDictionary = ["codecs": codecsJSON]
-			let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: response as? [AnyHashable: Any])
-			self.emit(command.callbackId, result: result!)
+			let result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: response as? [AnyHashable: Any] ?? [:])
+			self.emit(command.callbackId, result: result)
 		}
 	}
 
@@ -626,8 +628,8 @@ class iosrtcPlugin : CDVPlugin {
 			let capabilities = self.rtcPeerConnectionFactory.rtpReceiverCapabilities(forKind: kind)
 			let codecsJSON = capabilities.codecs.map { PluginRTCRtpTransceiver.codecCapabilityToJSON($0) }
 			let response: NSDictionary = ["codecs": codecsJSON]
-			let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: response as? [AnyHashable: Any])
-			self.emit(command.callbackId, result: result!)
+			let result = CDVPluginResult(status: CDVCommandStatus.ok, messageAs: response as? [AnyHashable: Any] ?? [:])
+			self.emit(command.callbackId, result: result)
 		}
 	}
 
@@ -656,20 +658,20 @@ class iosrtcPlugin : CDVPlugin {
 				options: options,
 				eventListener: { (data: NSDictionary) -> Void in
 					let result = CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				},
 				eventListenerForBinaryMessage: { (data: Data) -> Void in
-					let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAsArrayBuffer: data)
+					let result = CDVPluginResult(status: CDVCommandStatus.ok, messageAsArrayBuffer: data)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				}
 			)
 		}
@@ -703,7 +705,7 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (array: [[String:Any]]) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
+							status: CDVCommandStatus.ok,
 							messageAs: array as [AnyObject]
 						)
 					)
@@ -711,7 +713,7 @@ class iosrtcPlugin : CDVPlugin {
 				errback: { (error: NSError) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_ERROR,
+							status: CDVCommandStatus.error,
 							messageAs: error.localizedDescription
 						)
 					)
@@ -760,20 +762,20 @@ class iosrtcPlugin : CDVPlugin {
 			pluginRTCPeerConnection?.RTCDataChannel_setListener(dcId,
 				eventListener: { (data: NSDictionary) -> Void in
 					let result = CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				},
 				eventListenerForBinaryMessage: { (data: Data) -> Void in
-					let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAsArrayBuffer: data)
+					let result = CDVPluginResult(status: CDVCommandStatus.ok, messageAsArrayBuffer: data)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				}
 			)
 		}
@@ -798,8 +800,8 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				}
@@ -826,8 +828,8 @@ class iosrtcPlugin : CDVPlugin {
 				callback: { (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				}
@@ -877,13 +879,13 @@ class iosrtcPlugin : CDVPlugin {
 				track: pluginMediaStreamTrack!,
 				eventListener: { (data: NSDictionary) -> Void in
 					let result = CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				}
 			)
 		}
@@ -945,13 +947,13 @@ class iosrtcPlugin : CDVPlugin {
 			pluginMediaStream?.setListener(
 				{ (data: NSDictionary) -> Void in
 					let result = CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				},
 				eventListenerForAddTrack: self.saveMediaStreamTrack,
 				eventListenerForRemoveTrack: self.deleteMediaStreamTrack
@@ -1078,13 +1080,13 @@ class iosrtcPlugin : CDVPlugin {
 			pluginMediaStreamTrack?.setListener(
 				{ (data: NSDictionary) -> Void in
 					let result = CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 
 					// Allow more callbacks.
-					result!.setKeepCallbackAs(true);
-					self.emit(command.callbackId, result: result!)
+					result.setKeepCallbackAs(true);
+					self.emit(command.callbackId, result: result)
 				},
 				eventListenerForEnded: { () -> Void in
 					// Remove the track from the container.
@@ -1136,13 +1138,13 @@ class iosrtcPlugin : CDVPlugin {
 			webView: self.webView!,
 			eventListener: { (data: NSDictionary) -> Void in
 				let result = CDVPluginResult(
-					status: CDVCommandStatus_OK,
-					messageAs: data as? [AnyHashable: Any]
+					status: CDVCommandStatus.ok,
+					messageAs: data as? [AnyHashable: Any] ?? [:]
 				)
 
 				// Allow more callbacks.
-				result?.setKeepCallbackAs(true);
-				self.emit(command.callbackId, result: result!)
+				result.setKeepCallbackAs(true);
+				self.emit(command.callbackId, result: result)
 			}
 		)
 
@@ -1221,7 +1223,7 @@ class iosrtcPlugin : CDVPlugin {
 					DispatchQueue.main.async {
 						self.emit(command.callbackId,
 							result: CDVPluginResult(
-								status: CDVCommandStatus_OK,
+								status: CDVCommandStatus.ok,
 								messageAs: data
 							)
 						)
@@ -1229,7 +1231,7 @@ class iosrtcPlugin : CDVPlugin {
 				},
 				errback: { (error: String) -> Void in
 					self.emit(command.callbackId,
-						result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error)
+						result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error)
 					)
 				}
 			)
@@ -1262,14 +1264,14 @@ class iosrtcPlugin : CDVPlugin {
 			callback: { (data: NSDictionary) -> Void in
 				self.emit(command.callbackId,
 					result: CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 				)
 			},
 			errback: { (error: String) -> Void in
 				self.emit(command.callbackId,
-					result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error)
+					result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error)
 				)
 			},
 			eventListenerForNewStream: self.saveMediaStream
@@ -1284,8 +1286,8 @@ class iosrtcPlugin : CDVPlugin {
 				{ (data: NSDictionary) -> Void in
 					self.emit(command.callbackId,
 						result: CDVPluginResult(
-							status: CDVCommandStatus_OK,
-							messageAs: data as? [AnyHashable: Any]
+							status: CDVCommandStatus.ok,
+							messageAs: data as? [AnyHashable: Any] ?? [:]
 						)
 					)
 				}
@@ -1334,9 +1336,9 @@ class iosrtcPlugin : CDVPlugin {
 			}
 
 			if (status) {
-				self.emit(command.callbackId,result: CDVPluginResult(status: CDVCommandStatus_OK))
+				self.emit(command.callbackId,result: CDVPluginResult(status: CDVCommandStatus.ok))
 			} else {
-				self.emit(command.callbackId,result: CDVPluginResult(status: CDVCommandStatus_ERROR))
+				self.emit(command.callbackId,result: CDVPluginResult(status: CDVCommandStatus.error))
 			}
 		}
 	}
@@ -1351,7 +1353,7 @@ class iosrtcPlugin : CDVPlugin {
 		DispatchQueue.main.async {
 			let isTurnOn: Bool = CBool(command.arguments[0] as! Bool)
 			PluginRTCAudioController.setOutputSpeakerIfNeed(enabled: isTurnOn)
-			self.emit(command.callbackId, result: CDVPluginResult(status: CDVCommandStatus_OK))
+			self.emit(command.callbackId, result: CDVPluginResult(status: CDVCommandStatus.ok))
 		}
 	}
 
@@ -1512,14 +1514,14 @@ class iosrtcPlugin : CDVPlugin {
 			let callback: (NSDictionary) -> Void = { data in
 				self.emit(command.callbackId,
 					result: CDVPluginResult(
-						status: CDVCommandStatus_OK,
-						messageAs: data as? [AnyHashable: Any]
+						status: CDVCommandStatus.ok,
+						messageAs: data as? [AnyHashable: Any] ?? [:]
 					)
 				)
 			}
 			let errback: (Error) -> Void = { error in
 				self.emit(command.callbackId,
-					result: CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+					result: CDVPluginResult(status: CDVCommandStatus.error, messageAs: error.localizedDescription)
 				)
 			}
 			pluginRTCRptSender!.setParameters(params, callback, errback);
@@ -1553,7 +1555,7 @@ class iosrtcPlugin : CDVPlugin {
                 pluginRTCRptSender.replaceTrack(pluginMediaStreamTrack)
                 self.emit(command.callbackId,
                           result: CDVPluginResult(
-                            status: CDVCommandStatus_OK,
+														status: CDVCommandStatus.ok,
                             messageAs: [
                                 "track": pluginMediaStreamTrack?.getJSON()
                             ]))
@@ -1561,7 +1563,7 @@ class iosrtcPlugin : CDVPlugin {
                 NSLog("iosrtcPlugin#RTCPeerConnection_RTCRtpSender_replaceTrack() | ERROR: Unable to find track")
                 self.emit(command.callbackId,
                           result: CDVPluginResult(
-                            status: CDVCommandStatus_ERROR,
+														status: CDVCommandStatus.error,
                             messageAs: "Cannot find native RTCRtpSender track"))
             }
         }
